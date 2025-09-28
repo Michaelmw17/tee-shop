@@ -101,10 +101,11 @@ const productsDB = {
 };
 
 export async function GET(request: Request, { params }: { params: { category: string } }) {
-  const category = params.category;
-  
+  const awaitedParams = await params;
+  const category = awaitedParams.category;
+
   const products = productsDB[category as keyof typeof productsDB];
-  
+
   if (!products) {
     return NextResponse.json(
       { error: 'Category not found' },

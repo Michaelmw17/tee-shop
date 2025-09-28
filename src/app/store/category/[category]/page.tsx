@@ -36,8 +36,9 @@ async function getProducts(category: string): Promise<Product[]> {
 }
 
 export default async function CategoryPage({ params }: CategoryPageProps) {
-  const products = await getProducts(params.category);
-  
+  const awaitedParams = await params;
+  const products = await getProducts(awaitedParams.category);
+
   const categoryNames: Record<string, string> = {
     affordable: 'Affordable Tees',
     workout: 'Workout Gear',
@@ -51,10 +52,10 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
       <div className="max-w-7xl mx-auto px-4 py-6 sm:py-8">
         <div className="mb-6 sm:mb-8">
           <h1 className="text-2xl sm:text-3xl lg:text-4xl font-serif text-gray-800 mb-2 sm:mb-4">
-            {categoryNames[params.category] || params.category}
+            {categoryNames[awaitedParams.category] || awaitedParams.category}
           </h1>
           <p className="text-gray-600 text-sm sm:text-base">
-            Discover our collection of {params.category} tees and apparel
+            Discover our collection of {awaitedParams.category} tees and apparel
           </p>
         </div>
         
@@ -64,8 +65,8 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
               <div key={product.id} className="bg-gray-50 rounded-lg overflow-hidden hover:shadow-lg transition-shadow">
                 <div className="h-48 sm:h-56 lg:h-64 bg-gradient-to-br from-blue-200 to-blue-300 flex items-center justify-center">
                   <span className="text-3xl sm:text-4xl">
-                    {params.category === 'workout' ? '🏃‍♂️' : 
-                     params.category === 'premium' ? '✨' : '👕'}
+                    {awaitedParams.category === 'workout' ? '🏃‍♂️' : 
+                     awaitedParams.category === 'premium' ? '✨' : '👕'}
                   </span>
                 </div>
                 <div className="p-4 sm:p-6">

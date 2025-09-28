@@ -1,0 +1,9 @@
+{
+  "builds": [
+    { "src": "next.config.ts", "use": "@vercel/next" }
+  ],
+  "env": {
+    "DATABASE_URL": "your_database_url_here",
+    "NEXT_PUBLIC_API_URL": "https://api.example.com"
+  }
+}
