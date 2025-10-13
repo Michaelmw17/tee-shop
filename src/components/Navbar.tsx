@@ -1,13 +1,19 @@
-'use client';
+"use client";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
+import { useCart } from "../app/components/CartContext";
 import { Menu, X, ShoppingCart } from "lucide-react";
 
-export default function Navbar() {
+export default function Navbar({ category }: { category?: string }) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [hasMounted, setHasMounted] = useState(false);
+  const { cartCount } = useCart();
+  const pathname = usePathname();
 
   // Close mobile menu when resizing to desktop
   useEffect(() => {
+    setHasMounted(true);
     const handleResize = () => {
       if (window.innerWidth >= 768) {
         setIsMenuOpen(false);
@@ -27,11 +33,34 @@ export default function Navbar() {
           <Link href="/" className="flex-shrink-0">
             <h1 className="text-2xl font-serif italic text-black">Eliza Tees</h1>
           </Link>
+          <div className="hidden lg:flex justify-center items-center space-x-2 py-4">
+            <Link
+              href="/store/category/affordable"
+              className={`px-4 py-2 rounded font-medium transition-colors ${pathname === "/store/category/affordable" || category === "affordable" ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-800 hover:bg-blue-100 hover:text-blue-800"}`}
+            >Affordable Tees</Link>
+            <Link
+              href="/store/category/workout"
+              className={`px-4 py-2 rounded font-medium transition-colors ${pathname === "/store/category/workout" || category === "workout" ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-800 hover:bg-blue-100 hover:text-blue-800"}`}
+            >Workout Gear</Link>
+            <Link
+              href="/store/category/premium"
+              className={`px-4 py-2 rounded font-medium transition-colors ${pathname === "/store/category/premium" || category === "premium" ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-800 hover:bg-blue-100 hover:text-blue-800"}`}
+            >Premium Collection</Link>
+            <Link
+              href="/store"
+              className={`px-4 py-2 rounded font-medium transition-colors ${pathname === "/store" ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-800 hover:bg-blue-100 hover:text-blue-800"}`}
+            >Store Locator</Link>
+          </div>
           {/* Cart & Hamburger (mobile only) */}
           <div className="flex items-center space-x-2">
-            <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+            <Link href="/store/cart" className="relative p-2 hover:bg-gray-100 rounded-lg transition-colors">
               <ShoppingCart className="h-6 w-6 text-black" />
-            </button>
+              {hasMounted && cartCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                  {cartCount}
+                </span>
+              )}
+            </Link>
             {/* Hamburger only on mobile */}
             <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
@@ -57,13 +86,6 @@ export default function Navbar() {
             </div>
           </div>
         )}
-        {/* Desktop Nav - horizontal links, no hamburger */}
-        <div className="hidden lg:flex justify-center items-center space-x-8 py-4">
-          <Link href="/store/category/affordable" className="hover:text-gray-600 font-medium transition-colors">Affordable Tees</Link>
-          <Link href="/store/category/workout" className="hover:text-gray-600 font-medium transition-colors">Workout Gear</Link>
-          <Link href="/store/category/premium" className="hover:text-gray-600 font-medium transition-colors">Premium Collection</Link>
-          <Link href="/store" className="hover:text-gray-600 font-medium transition-colors">Store Locator</Link>
-        </div>
       </div>
     </nav>
   );

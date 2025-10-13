@@ -9,7 +9,7 @@ const productsDB = {
       price: 19.99,
       description: "100% cotton, comfortable fit, everyday wear",
       category: "affordable",
-      image: "/api/placeholder/tee-1",
+  image: "https://placehold.co/400x400?text=Basic+Cotton+Tee",
       sizes: ["XS", "S", "M", "L", "XL"],
       colors: ["White", "Black", "Navy", "Grey"]
     },
@@ -19,7 +19,7 @@ const productsDB = {
       price: 22.99,
       description: "Soft cotton blend, versatile styling",
       category: "affordable",
-      image: "/api/placeholder/tee-2",
+  image: "https://placehold.co/400x400?text=Essential+V-Neck",
       sizes: ["XS", "S", "M", "L", "XL"],
       colors: ["White", "Black", "Pink", "Blue"]
     },
@@ -29,7 +29,7 @@ const productsDB = {
       price: 24.99,
       description: "Timeless design, durable construction",
       category: "affordable",
-      image: "/api/placeholder/tee-3",
+  image: "https://placehold.co/400x400?text=Classic+Crew+Neck",
       sizes: ["XS", "S", "M", "L", "XL", "XXL"],
       colors: ["White", "Black", "Red", "Green"]
     }
@@ -41,7 +41,7 @@ const productsDB = {
       price: 29.99,
       description: "Moisture-wicking, breathable, perfect for workouts",
       category: "workout",
-      image: "/api/placeholder/workout-1",
+  image: "https://placehold.co/400x400?text=Performance+Tee",
       sizes: ["XS", "S", "M", "L", "XL"],
       colors: ["Black", "Navy", "Charcoal", "Red"]
     },
@@ -51,7 +51,7 @@ const productsDB = {
       price: 27.99,
       description: "Lightweight, quick-dry fabric for intense training",
       category: "workout",
-      image: "/api/placeholder/workout-2",
+  image: "https://placehold.co/400x400?text=Athletic+Singlet",
       sizes: ["S", "M", "L", "XL"],
       colors: ["Black", "White", "Blue", "Orange"]
     },
@@ -61,7 +61,7 @@ const productsDB = {
       price: 32.99,
       description: "Compression fit, sweat-resistant technology",
       category: "workout",
-      image: "/api/placeholder/workout-3",
+  image: "https://placehold.co/400x400?text=Training+Tank",
       sizes: ["XS", "S", "M", "L", "XL"],
       colors: ["Black", "Grey", "Navy", "Green"]
     }
@@ -73,7 +73,7 @@ const productsDB = {
       price: 89.99,
       description: "5% cashmere, 95% premium cotton - luxurious comfort",
       category: "premium",
-      image: "/api/placeholder/premium-1",
+  image: "https://placehold.co/400x400?text=Cashmere+Blend+Tee",
       sizes: ["XS", "S", "M", "L", "XL"],
       colors: ["Cream", "Charcoal", "Navy", "Burgundy"]
     },
@@ -83,7 +83,7 @@ const productsDB = {
       price: 79.99,
       description: "Ultra-soft modal fiber, sophisticated drape",
       category: "premium",
-      image: "/api/placeholder/premium-2",
+  image: "https://placehold.co/400x400?text=Luxury+Modal+Tee",
       sizes: ["XS", "S", "M", "L", "XL"],
       colors: ["White", "Black", "Taupe", "Rose"]
     },
@@ -93,29 +93,52 @@ const productsDB = {
       price: 99.99,
       description: "Temperature regulating, odor-resistant luxury",
       category: "premium",
-      image: "/api/placeholder/premium-3",
+  image: "https://placehold.co/400x400?text=Merino+Wool+Blend",
       sizes: ["XS", "S", "M", "L", "XL"],
       colors: ["Charcoal", "Navy", "Camel", "Forest"]
     }
   ]
 };
 
-export async function GET(request: Request, { params }: { params: { category: string } }) {
-  const awaitedParams = await params;
-  const category = awaitedParams.category;
+export async function GET(request: Request, { params }: { params: Promise<{ category: string }> }) {
+  try {
+    const awaitedParams = await params;
+    const category = awaitedParams.category;
 
-  const products = productsDB[category as keyof typeof productsDB];
+    // Input validation
+    if (!category || typeof category !== 'string') {
+      return NextResponse.json({ error: 'Invalid category' }, { status: 400 });
+    }
 
-  if (!products) {
-    return NextResponse.json(
-      { error: 'Category not found' },
-      { status: 404 }
-    );
+    // Sanitize and validate category name
+    const sanitizedCategory = category.toLowerCase().trim();
+    const validCategories = ['affordable', 'workout', 'premium'];
+    
+    if (!validCategories.includes(sanitizedCategory)) {
+      return NextResponse.json({ error: 'Category not found' }, { status: 404 });
+    }
+
+    const products = productsDB[sanitizedCategory as keyof typeof productsDB];
+
+    if (!products) {
+      return NextResponse.json({ error: 'Category not found' }, { status: 404 });
+    }
+    
+    const response = NextResponse.json({
+      category: sanitizedCategory,
+      products,
+      total: products.length
+    });
+    
+    // Add security headers
+    response.headers.set('X-Content-Type-Options', 'nosniff');
+    response.headers.set('X-Frame-Options', 'DENY');
+    
+    return response;
+  } catch (error) {
+    if (process.env.NODE_ENV === 'development') {
+      console.error('API Error:', error);
+    }
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
-  
-  return NextResponse.json({
-    category,
-    products,
-    total: products.length
-  });
 }

@@ -41,18 +41,24 @@ export default function Home() {
             </h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
               {[1, 2, 3].map((item) => (
-                <div key={item} className="bg-gray-50 rounded-lg overflow-hidden hover:shadow-lg transition-shadow">
+                <Link
+                  key={item}
+                  href={`/store/product/${item}`}
+                  className="bg-gray-50 rounded-lg overflow-hidden hover:shadow-lg transition-shadow block"
+                >
                   <div className="h-48 sm:h-56 lg:h-64 bg-gradient-to-br from-blue-200 to-blue-300 flex items-center justify-center">
                     <span className="text-3xl sm:text-4xl">👕</span>
                   </div>
                   <div className="p-4 sm:p-6">
-                    <h4 className="text-lg sm:text-xl font-semibold mb-2">Basic Cotton Tee #{item}</h4>
+                    <span className="text-lg sm:text-xl font-semibold mb-2 block hover:text-blue-600">
+                      Basic Cotton Tee #{item}
+                    </span>
                     <p className="text-gray-600 mb-3 sm:mb-4 text-sm sm:text-base">
                       100% cotton, comfortable fit, everyday wear
                     </p>
                     <p className="text-xl sm:text-2xl font-bold text-gray-800">$19.99</p>
                   </div>
-                </div>
+                </Link>
               ))}
             </div>
           </div>
@@ -64,20 +70,24 @@ export default function Home() {
             </h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
               {[1, 2, 3].map((item) => (
-                <div key={item} className="bg-gray-50 rounded-lg overflow-hidden hover:shadow-lg transition-shadow">
+                <Link
+                  key={item}
+                  href={`/store/product/${item + 3}`}
+                  className="bg-gray-50 rounded-lg overflow-hidden hover:shadow-lg transition-shadow block"
+                >
                   <div className="h-48 sm:h-56 lg:h-64 bg-gradient-to-br from-green-200 to-green-300 flex items-center justify-center">
                     <span className="text-3xl sm:text-4xl">🏃‍♂️</span>
                   </div>
                   <div className="p-4 sm:p-6">
-                    <h4 className="text-lg sm:text-xl font-semibold mb-2">
+                    <span className="text-lg sm:text-xl font-semibold mb-2 block hover:text-blue-600">
                       Performance {item % 2 === 0 ? 'Singlet' : 'Tee'} #{item}
-                    </h4>
+                    </span>
                     <p className="text-gray-600 mb-3 sm:mb-4 text-sm sm:text-base">
                       Moisture-wicking, breathable, perfect for workouts
                     </p>
                     <p className="text-xl sm:text-2xl font-bold text-gray-800">$29.99</p>
                   </div>
-                </div>
+                </Link>
               ))}
             </div>
           </div>
@@ -89,18 +99,24 @@ export default function Home() {
             </h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
               {[1, 2, 3].map((item) => (
-                <div key={item} className="bg-gray-50 rounded-lg overflow-hidden hover:shadow-lg transition-shadow">
+                <Link
+                  key={item}
+                  href={`/store/product/${item + 6}`}
+                  className="bg-gray-50 rounded-lg overflow-hidden hover:shadow-lg transition-shadow block"
+                >
                   <div className="h-48 sm:h-56 lg:h-64 bg-gradient-to-br from-purple-200 to-purple-300 flex items-center justify-center">
                     <span className="text-3xl sm:text-4xl">✨</span>
                   </div>
                   <div className="p-4 sm:p-6">
-                    <h4 className="text-lg sm:text-xl font-semibold mb-2">Cashmere Blend Tee #{item}</h4>
+                    <span className="text-lg sm:text-xl font-semibold mb-2 block hover:text-blue-600">
+                      Cashmere Blend Tee #{item}
+                    </span>
                     <p className="text-gray-600 mb-3 sm:mb-4 text-sm sm:text-base">
                       5% cashmere, 95% premium cotton - luxurious comfort
                     </p>
                     <p className="text-xl sm:text-2xl font-bold text-gray-800">$89.99</p>
                   </div>
-                </div>
+                </Link>
               ))}
             </div>
           </div>

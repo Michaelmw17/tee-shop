@@ -8,7 +8,7 @@ const affordableTees = [
     price: 19.99,
     description: "100% cotton, comfortable fit, everyday wear",
     category: "affordable",
-    image: "/api/placeholder/tee-1"
+    image: "https://placehold.co/400x400?text=Basic+Cotton+Tee"
   },
   {
     id: 2,
@@ -16,7 +16,7 @@ const affordableTees = [
     price: 22.99,
     description: "Soft cotton blend, versatile styling",
     category: "affordable",
-    image: "/api/placeholder/tee-2"
+    image: "https://placehold.co/400x400?text=Essential+V-Neck"
   },
   {
     id: 3,
@@ -24,7 +24,7 @@ const affordableTees = [
     price: 24.99,
     description: "Timeless design, durable construction",
     category: "affordable",
-    image: "/api/placeholder/tee-3"
+    image: "https://placehold.co/400x400?text=Classic+Crew+Neck"
   }
 ];
 
@@ -35,7 +35,7 @@ const workoutGear = [
     price: 29.99,
     description: "Moisture-wicking, breathable, perfect for workouts",
     category: "workout",
-    image: "/api/placeholder/workout-1"
+    image: "https://placehold.co/400x400?text=Performance+Tee"
   },
   {
     id: 5,
@@ -43,7 +43,7 @@ const workoutGear = [
     price: 27.99,
     description: "Lightweight, quick-dry fabric for intense training",
     category: "workout",
-    image: "/api/placeholder/workout-2"
+    image: "https://placehold.co/400x400?text=Athletic+Singlet"
   },
   {
     id: 6,
@@ -51,7 +51,7 @@ const workoutGear = [
     price: 32.99,
     description: "Compression fit, sweat-resistant technology",
     category: "workout",
-    image: "/api/placeholder/workout-3"
+    image: "https://placehold.co/400x400?text=Training+Tank"
   }
 ];
 
@@ -62,7 +62,7 @@ const premiumCollection = [
     price: 89.99,
     description: "5% cashmere, 95% premium cotton - luxurious comfort",
     category: "premium",
-    image: "/api/placeholder/premium-1"
+    image: "https://placehold.co/400x400?text=Cashmere+Blend+Tee"
   },
   {
     id: 8,
@@ -70,7 +70,7 @@ const premiumCollection = [
     price: 79.99,
     description: "Ultra-soft modal fiber, sophisticated drape",
     category: "premium",
-    image: "/api/placeholder/premium-2"
+    image: "https://placehold.co/400x400?text=Luxury+Modal+Tee"
   },
   {
     id: 9,
@@ -78,7 +78,7 @@ const premiumCollection = [
     price: 99.99,
     description: "Temperature regulating, odor-resistant luxury",
     category: "premium",
-    image: "/api/placeholder/premium-3"
+    image: "https://placehold.co/400x400?text=Merino+Wool+Blend"
   }
 ];
 

@@ -1,0 +1,18 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+# Run security audit
+echo "🔒 Running security audit..."
+npm audit --audit-level=moderate
+
+# If audit fails, don't allow commit
+if [ $? -ne 0 ]; then
+  echo "❌ Security vulnerabilities found! Run 'npm audit fix' to fix them."
+  echo "💡 Or run 'npm run security:fix' to auto-fix issues"
+  exit 1
+fi
+
+# Run lint-staged for file-specific checks
+npm run pre-commit
+
+echo "✅ Security check passed! Proceeding with commit..."
