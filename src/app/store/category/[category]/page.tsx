@@ -1,5 +1,5 @@
 "use client";
-import ProductCard from "../../../components/ProductCard";
+import ProductCard from "../../../../components/ProductCard";
 import Navbar from "@/components/Navbar";
 import Link from "next/link";
 import { useParams } from "next/navigation";
