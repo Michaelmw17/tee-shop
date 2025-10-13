@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { useCart } from "@/app/components/CartContext";
+import { useCart } from "@/components/CartContext";
 import { useParams } from "next/navigation";
 import Navbar from "@/components/Navbar";
 

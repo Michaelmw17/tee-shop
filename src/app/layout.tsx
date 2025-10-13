@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import { CartProvider } from "./components/CartContext";
+import { CartProvider } from "../components/CartContext";
 
 export const metadata: Metadata = {
   title: "Create Next App",

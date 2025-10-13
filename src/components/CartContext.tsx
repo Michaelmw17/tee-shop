@@ -16,6 +16,7 @@ interface CartContextType {
   cartItems: CartItem[];
   addToCart: (item: Omit<CartItem, "qty"> & { qty?: number }) => void;
   updateQty: (id: number, size: string, color: string, qty: number) => void;
+  clearCart: () => void;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -83,6 +84,10 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     });
   };
 
+  const clearCart = () => {
+    setCartItems([]);
+  };
+
   const updateQty = (id: number, size: string, color: string, qty: number) => {
     setCartItems((prev) => {
       if (qty < 1) {
@@ -97,7 +102,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <CartContext.Provider value={{ cartCount, cartItems, addToCart, updateQty }}>
+    <CartContext.Provider value={{ cartCount, cartItems, addToCart, updateQty, clearCart }}>
       {children}
     </CartContext.Provider>
   );

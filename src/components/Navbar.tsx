@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
-import { useCart } from "../app/components/CartContext";
+import { useCart } from "./CartContext";
 import { Menu, X, ShoppingCart } from "lucide-react";
 
 export default function Navbar({ category }: { category?: string }) {
@@ -31,7 +31,7 @@ export default function Navbar({ category }: { category?: string }) {
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
           <Link href="/" className="flex-shrink-0">
-            <h1 className="text-2xl font-serif italic text-black">Eliza Tees</h1>
+            <h1 className="text-2xl font-serif italic text-black">Yogi Tees</h1>
           </Link>
           <div className="hidden lg:flex justify-center items-center space-x-2 py-4">
             <Link

@@ -57,6 +57,7 @@ npm run security:fix
 3. **Fix vulnerabilities** before committing
 4. **Use environment variables** for sensitive data
 5. **Review** security warnings carefully
+6. **Project-specific Git identity** configured (Michaelmw17 <michaelmw17@outlook.com.au>)
 
 ## 🔍 What's Scanned:
 
