@@ -1,5 +1,6 @@
 "use client";
 import { useCart } from "../../../components/CartContext";
+import ColorSquare from "../../../components/ColorSquare";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Navbar from "@/components/Navbar";
@@ -12,6 +13,7 @@ interface CartItem {
   color: string;
   image: string;
   qty: number;
+  colors?: string[];
 }
 
 export default function CartPage() {
@@ -52,7 +54,27 @@ export default function CartPage() {
                   <div>
                     <div className="font-semibold text-lg">{item.name}</div>
                     <div className="text-sm text-gray-600">Size: {item.size}</div>
-                    <div className="text-sm text-gray-600">Color: {item.color}</div>
+                    <div className="text-sm text-gray-600 flex items-center gap-2">Color:
+                      {/* Show all color options as small squares, allow changing */}
+                      {item.colors && Array.isArray(item.colors) ? (
+                        item.colors.map((color) => (
+                          <ColorSquare
+                            key={color}
+                            color={color}
+                            selected={item.color === color}
+                            onClick={() => updateQty(item.id, item.size, color, item.qty)}
+                            className="w-6 h-6"
+                          />
+                        ))
+                      ) : (
+                        <ColorSquare
+                          color={item.color}
+                          selected={true}
+                          onClick={() => {}}
+                          className="w-6 h-6"
+                        />
+                      )}
+                    </div>
                     <div className="text-sm text-gray-800 font-bold mt-1">${item.price}</div>
                   </div>
                   <div className="mt-2 min-[360px]:mt-0 flex items-center gap-2 min-[360px]:justify-end">
@@ -72,7 +94,7 @@ export default function CartPage() {
                           const val = Math.max(1, Number(e.target.value));
                           updateQty(item.id, item.size, item.color, val);
                         }}
-                        className="w-20 px-4 py-2 rounded-lg border border-gray-300 bg-gray-200 text-gray-700 text-xs text-center focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all"
+                        className="w-20 px-4 py-2 rounded-lg border border-gray-300 bg-white text-gray-700 text-xs text-center focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all input-number-spin-visible"
                       />
                       <button
                         className="bg-red-500 text-white px-2 py-1 rounded-full text-lg font-bold border border-gray-200 shadow hover:bg-red-900"

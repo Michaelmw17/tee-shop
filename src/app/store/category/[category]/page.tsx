@@ -21,6 +21,18 @@ export default function CategoryPage() {
   const category = params.category as string;
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+  const [columns, setColumns] = useState(1);
+
+  useEffect(() => {
+    function updateColumns() {
+      if (window.innerWidth >= 1024) setColumns(3);
+      else if (window.innerWidth >= 768) setColumns(2);
+      else setColumns(1);
+    }
+    updateColumns();
+    window.addEventListener("resize", updateColumns);
+    return () => window.removeEventListener("resize", updateColumns);
+  }, []);
 
   useEffect(() => {
     async function fetchProducts() {
@@ -77,10 +89,17 @@ export default function CategoryPage() {
         </div>
         {isValidCategory ? (
           products.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
-              {products.map((product) => (
-                <ProductCard key={product.id} product={product} category={category} />
-              ))}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 lg:gap-8">
+              {products.map((product, idx) => {
+                const isLast = idx === products.length - 1;
+                const itemsInLastRow = products.length % columns;
+                const shouldCenter = isLast && itemsInLastRow === 1 && products.length > columns;
+                return (
+                  <div key={product.id} className={shouldCenter ? "col-span-full flex justify-center" : "w-full flex justify-center"}>
+                    <ProductCard product={product} category={category} />
+                  </div>
+                );
+              })}
             </div>
           ) : (
             <div className="text-center py-12 sm:py-16">

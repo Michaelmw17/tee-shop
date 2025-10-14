@@ -1,5 +1,4 @@
 # Pre-Commit Security Configuration
-
 ## 🔒 Automatic Security Scanning
 
 This project automatically scans for vulnerabilities before every commit using:

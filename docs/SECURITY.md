@@ -1,5 +1,4 @@
 # Security Audit Report & Fixes Applied
-
 ## ✅ Security Issues Identified & Fixed
 
 ### 1. **JSON Parsing Vulnerability**

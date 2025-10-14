@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { useCart } from "@/components/CartContext";
 import { useParams } from "next/navigation";
 import Navbar from "@/components/Navbar";
+import ColorSquare from "@/components/ColorSquare";
 
 // Mock fallback for product data shape
 interface Product {
@@ -140,18 +141,12 @@ export default function ProductPage() {
               <div className="flex flex-row gap-2 items-center">
                 <span className="font-semibold">Color:</span>
                 {product.colors.map((color) => (
-                  <button
+                  <ColorSquare
                     key={color}
-                    className={`w-8 h-8 rounded border flex items-center justify-center transition-all duration-150 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400
-                      ${selectedColor === color ? "border-blue-600 ring-2 ring-blue-400" : "border-gray-300"}`}
-                    style={{ backgroundColor: color.toLowerCase() }}
+                    color={color}
+                    selected={selectedColor === color}
                     onClick={() => setSelectedColor(color)}
-                    aria-label={color}
-                  >
-                    {selectedColor === color ? (
-                      <span className="text-xs font-bold text-white drop-shadow">✓</span>
-                    ) : null}
-                  </button>
+                  />
                 ))}
               </div>
               {/* Size dropdown */}

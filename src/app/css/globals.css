@@ -19,8 +19,16 @@ body {
   color: #000;
 }
 
+
 .font-inter {
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
-  
   font-family: 'Playfair Display', serif;
+}
+
+/* Always show number input spin buttons in Chrome */
+.input-number-spin-visible::-webkit-inner-spin-button, .input-number-spin-visible::-webkit-outer-spin-button {
+  opacity: 1;
+}
+.input-number-spin-visible {
+  appearance: number-input;
 }

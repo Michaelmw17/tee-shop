@@ -1,5 +1,4 @@
 # Project Git Configuration
-
 ## 🎯 Repository-Specific Git Settings
 
 This project uses different Git credentials than your global settings:

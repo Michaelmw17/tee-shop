@@ -13,11 +13,11 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 2. **Environment variables:**
 	- Copy `.env.local` and fill in your secrets (see sample in repo).
 3. **Code formatting:**
-	- Uses Prettier (`.prettierrc`) and ESLint (`eslint.config.mjs`).
-	- Format code: `npx prettier --write .`
+	- Uses Prettier (`config/.prettierrc`) and ESLint (`config/eslint.config.mjs`).
+	- Format code: `npx prettier --config config/.prettierrc --write .`
 4. **Testing:**
 	- Run tests: `npm test`
-	- Jest config included.
+	- Jest config in `config/jest.config.js` and setup in `config/jest.setup.js`.
 
 ## Environment Variables
 
@@ -33,16 +33,16 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 
 - Push your repo to GitHub.
 - Import to Vercel and set environment variables in the dashboard.
-- Custom config in `vercel.json`.
+- Custom config in `config/vercel.json`.
 
 ## Code Quality
 
-- ESLint and Prettier are set up for consistent code style.
-- TypeScript for type safety.
+- ESLint and Prettier are set up for consistent code style (see `config/`).
+- TypeScript for type safety (`config/tsconfig.json`).
 
 ## Testing
 
-- Jest and React Testing Library are set up.
+- Jest and React Testing Library are set up (see `config/jest.config.js`).
 - Add tests in `src/__tests__` or alongside components.
 
 ## Accessibility & SEO
@@ -53,6 +53,7 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 ## Image Optimization
 
 - Use Next.js `<Image />` for product images.
+- See image config in `config/next.config.ts`.
 
 ## Learn More
 

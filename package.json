@@ -6,7 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint",
+  "lint": "eslint --config ./config/eslint.config.mjs",
     "security:audit": "npm audit",
     "security:fix": "npm audit fix",
     "security:check": "npm audit --audit-level=high && npm run build",
@@ -37,7 +37,7 @@
   },
   "lint-staged": {
     "*.{js,jsx,ts,tsx}": [
-      "eslint --fix",
+  "eslint --fix --config ./config/eslint.config.mjs",
       "npm run security:audit"
     ],
     "package.json": [

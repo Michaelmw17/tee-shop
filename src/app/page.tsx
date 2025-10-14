@@ -19,6 +19,18 @@ export default function Home() {
   const [workoutProducts, setWorkoutProducts] = useState<Product[]>([]);
   const [premiumProducts, setPremiumProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+  const [columns, setColumns] = useState(1);
+
+  useEffect(() => {
+    function updateColumns() {
+      if (window.innerWidth >= 1024) setColumns(3);
+      else if (window.innerWidth >= 640) setColumns(2);
+      else setColumns(1);
+    }
+    updateColumns();
+    window.addEventListener("resize", updateColumns);
+    return () => window.removeEventListener("resize", updateColumns);
+  }, []);
 
   useEffect(() => {
     async function fetchAll() {
@@ -80,9 +92,16 @@ export default function Home() {
               <div className="text-center py-8 text-gray-500">Loading...</div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
-                {affordableProducts.map((product: Product) => (
-                  <ProductCard key={product.id} product={product} category="affordable" />
-                ))}
+                {affordableProducts.map((product, idx) => {
+                  const isLast = idx === affordableProducts.length - 1;
+                  const itemsInLastRow = affordableProducts.length % columns;
+                  const shouldCenter = isLast && itemsInLastRow === 1 && affordableProducts.length > columns;
+                  return (
+                    <div key={product.id} className={shouldCenter ? "col-span-full flex justify-center" : "w-full flex justify-center"}>
+                      <ProductCard product={product} category="affordable" />
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>
@@ -95,9 +114,16 @@ export default function Home() {
               <div className="text-center py-8 text-gray-500">Loading...</div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
-                {workoutProducts.map((product: Product) => (
-                  <ProductCard key={product.id} product={product} category="workout" />
-                ))}
+                {workoutProducts.map((product, idx) => {
+                  const isLast = idx === workoutProducts.length - 1;
+                  const itemsInLastRow = workoutProducts.length % columns;
+                  const shouldCenter = isLast && itemsInLastRow === 1 && workoutProducts.length > columns;
+                  return (
+                    <div key={product.id} className={shouldCenter ? "col-span-full flex justify-center" : "w-full flex justify-center"}>
+                      <ProductCard product={product} category="workout" />
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>
@@ -110,9 +136,16 @@ export default function Home() {
               <div className="text-center py-8 text-gray-500">Loading...</div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
-                {premiumProducts.map((product: Product) => (
-                  <ProductCard key={product.id} product={product} category="premium" />
-                ))}
+                {premiumProducts.map((product, idx) => {
+                  const isLast = idx === premiumProducts.length - 1;
+                  const itemsInLastRow = premiumProducts.length % columns;
+                  const shouldCenter = isLast && itemsInLastRow === 1 && premiumProducts.length > columns;
+                  return (
+                    <div key={product.id} className={shouldCenter ? "col-span-full flex justify-center" : "w-full flex justify-center"}>
+                      <ProductCard product={product} category="premium" />
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>
