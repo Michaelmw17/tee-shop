@@ -1,8 +1,10 @@
 "use client";
+
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useCart } from "../components/CartContext";
-import ColorSquare from "./ColorSquare";
+import ColorSquare, { getCanonicalColorName } from "./ColorSquare";
+import { COLOR_SWATCH_MAP, ORDERED_COLOR_KEYS, SupportedColor } from "@/data/colors";
 
 interface Product {
   id: number;
@@ -13,21 +15,54 @@ interface Product {
   image: string;
   sizes: string[];
   colors: string[];
+  material?: string;
 }
+
+const formatColorLabel = (color: SupportedColor | "" | null) =>
+  color ? color.charAt(0).toUpperCase() + color.slice(1) : "";
 
 export default function ProductCard({ product, category }: { product: Product; category: string }) {
   const [selectedSize, setSelectedSize] = useState("");
-  const [selectedColor, setSelectedColor] = useState("");
+  type SelectedColor = SupportedColor | "";
+  const [selectedColor, setSelectedColor] = useState<SelectedColor>("");
   const [quantity, setQuantity] = useState(1);
   const { addToCart } = useCart();
   const [error, setError] = useState("");
 
+  const availableColors = useMemo<SupportedColor[]>(() => {
+    const canonicalColors: SupportedColor[] =
+      product.colors
+        ?.map((color) => getCanonicalColorName(color))
+        .filter((color): color is SupportedColor => Boolean(color)) ?? [];
+
+    const uniqueColors: SupportedColor[] = Array.from(new Set(canonicalColors)).filter(
+      (color): color is SupportedColor => Boolean(COLOR_SWATCH_MAP[color])
+    );
+
+    return uniqueColors.sort((a, b) => {
+      const aIndex = ORDERED_COLOR_KEYS.indexOf(a);
+      const bIndex = ORDERED_COLOR_KEYS.indexOf(b);
+      if (aIndex === -1 && bIndex === -1) {
+        return a.localeCompare(b);
+      }
+      if (aIndex === -1) return 1;
+      if (bIndex === -1) return -1;
+      return aIndex - bIndex;
+    });
+  }, [product.colors]);
+
+  useEffect(() => {
+    if (selectedColor && !availableColors.includes(selectedColor)) {
+      setSelectedColor("");
+    }
+  }, [availableColors, selectedColor]);
+
   return (
-    <div className="bg-gray-50 rounded-lg overflow-hidden hover:shadow-lg transition-shadow flex flex-col h-full min-h-[500px] max-h-[600px]">
+    <div className="w-[220px] sm:w-[260px] lg:w-[300px] bg-gray-50 rounded-lg overflow-hidden hover:shadow-lg transition-shadow flex flex-col h-[560px]">
       <Link href={`/store/product/${product.id}`} className="block">
         <div className="h-48 sm:h-56 lg:h-64 bg-gradient-to-br from-blue-200 to-blue-300 flex items-center justify-center cursor-pointer">
           <span className="text-3xl sm:text-4xl">
-            {category === 'workout' ? '🏃‍♂️' : category === 'premium' ? '✨' : '👕'}
+            {category === "workout" ? "🏃‍♂️" : category === "premium" ? "✨" : "👕"}
           </span>
         </div>
       </Link>
@@ -36,26 +71,29 @@ export default function ProductCard({ product, category }: { product: Product; c
         <p className="text-gray-600 mb-3 sm:mb-4 text-sm sm:text-base">{product.description}</p>
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-3 sm:mb-4">
           <p className="text-xl sm:text-2xl font-bold text-gray-800 mb-2 sm:mb-0">${product.price}</p>
-          <div className="text-xs sm:text-sm text-gray-500">
-            {product.sizes.length} sizes available
-          </div>
+          <div className="text-xs sm:text-sm text-gray-500">{product.sizes.length} sizes available</div>
         </div>
         <div className="flex-1" />
-        {/* Controls always at bottom */}
         <div className="flex flex-col gap-2 mt-auto">
-          <div className="flex flex-wrap gap-2">
-            {product.colors.slice(0, 4).map((color) => (
-              <ColorSquare
-                key={color}
-                color={color}
-                selected={selectedColor === color}
-                onClick={() => setSelectedColor(color)}
-              />
-            ))}
+          <div className="flex flex-wrap gap-2 min-h-[28px]">
+            {availableColors.length > 0 ? (
+              availableColors.slice(0, 4).map((color) => (
+                <ColorSquare
+                  key={color}
+                  color={color}
+                  selected={selectedColor === color}
+                  onClick={() => setSelectedColor(color)}
+                />
+              ))
+            ) : (
+              <span className="text-xs text-gray-500">Color currently unavailable</span>
+            )}
           </div>
           <div className="flex gap-2">
             <div className="flex flex-1 items-center gap-1">
-              <label htmlFor={`size-${product.id}`} className="text-xs font-medium w-12">Size:</label>
+              <label htmlFor={`size-${product.id}`} className="text-xs font-medium w-12">
+                Size:
+              </label>
               <select
                 id={`size-${product.id}`}
                 className="w-full px-2 py-1 border border-gray-400 rounded-lg text-xs bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-400 transition-all"
@@ -63,26 +101,34 @@ export default function ProductCard({ product, category }: { product: Product; c
                 onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setSelectedSize(e.target.value)}
               >
                 <option value="">Select size</option>
-                {product.sizes.map(size => (
-                  <option key={size} value={size}>{size}</option>
+                {product.sizes.map((size) => (
+                  <option key={size} value={size}>
+                    {size}
+                  </option>
                 ))}
               </select>
             </div>
             <div className="flex flex-1 items-center gap-1">
-              <label htmlFor={`quantity-${product.id}`} className="text-xs font-medium w-12">Qty:</label>
+              <label htmlFor={`quantity-${product.id}`} className="text-xs font-medium w-12">
+                Qty:
+              </label>
               <input
                 id={`quantity-${product.id}`}
                 type="number"
                 min={1}
                 max={99}
                 value={quantity}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setQuantity(Math.max(1, Number(e.target.value)))}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  setQuantity(Math.max(1, Number(e.target.value)))
+                }
                 className="w-full px-2 py-1 border border-gray-400 rounded-lg text-xs bg-white text-gray-700 text-center focus:border-blue-500 focus:ring-2 focus:ring-blue-400 transition-all input-number-spin-visible"
               />
             </div>
           </div>
           <button
-            className={`w-full bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700 transition-colors text-xs sm:text-sm mb-2 ${!selectedSize || !selectedColor ? "opacity-50 cursor-not-allowed" : ""}`}
+            className={`w-full bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700 transition-colors text-xs sm:text-sm mb-2 ${
+              !selectedSize || !selectedColor ? "opacity-50 cursor-not-allowed" : ""
+            }`}
             disabled={!selectedSize || !selectedColor}
             onClick={() => {
               if (!selectedSize) {
@@ -98,10 +144,10 @@ export default function ProductCard({ product, category }: { product: Product; c
                 name: product.name,
                 price: product.price,
                 size: selectedSize,
-                color: selectedColor,
+                color: formatColorLabel(selectedColor),
                 image: product.image,
                 qty: quantity,
-                colors: product.colors
+                colors: availableColors.map(formatColorLabel)
               });
               setError("");
             }}
@@ -114,3 +160,4 @@ export default function ProductCard({ product, category }: { product: Product; c
     </div>
   );
 }
+

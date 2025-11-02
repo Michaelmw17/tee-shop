@@ -1,6 +1,3 @@
-#!/usr/bin/env sh
-. "$(dirname -- "$0")/_/husky.sh"
-
 # Run security audit
 echo "🔒 Running security audit..."
 npm audit --audit-level=moderate

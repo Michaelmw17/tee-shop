@@ -1,97 +1,48 @@
-import { NextResponse } from 'next/server';
+import { NextResponse } from "next/server";
+import {
+  CATEGORY_SLUGS,
+  PRODUCTS_BY_CATEGORY,
+  getAllProducts
+} from "@/data/products";
 
-// Mock data for affordable tees
-const affordableTees = [
-  {
-    id: 1,
-    name: "Basic Cotton Tee",
-    price: 19.99,
-    description: "100% cotton, comfortable fit, everyday wear",
-    category: "affordable",
-    image: "https://placehold.co/400x400?text=Basic+Cotton+Tee"
-  },
-  {
-    id: 2,
-    name: "Essential V-Neck",
-    price: 22.99,
-    description: "Soft cotton blend, versatile styling",
-    category: "affordable",
-    image: "https://placehold.co/400x400?text=Essential+V-Neck"
-  },
-  {
-    id: 3,
-    name: "Classic Crew Neck",
-    price: 24.99,
-    description: "Timeless design, durable construction",
-    category: "affordable",
-    image: "https://placehold.co/400x400?text=Classic+Crew+Neck"
+function parsePositiveInt(value: string | null, fallback: number) {
+  if (!value) {
+    return fallback;
   }
-];
-
-const workoutGear = [
-  {
-    id: 4,
-    name: "Performance Tee",
-    price: 29.99,
-    description: "Moisture-wicking, breathable, perfect for workouts",
-    category: "workout",
-    image: "https://placehold.co/400x400?text=Performance+Tee"
-  },
-  {
-    id: 5,
-    name: "Athletic Singlet",
-    price: 27.99,
-    description: "Lightweight, quick-dry fabric for intense training",
-    category: "workout",
-    image: "https://placehold.co/400x400?text=Athletic+Singlet"
-  },
-  {
-    id: 6,
-    name: "Training Tank",
-    price: 32.99,
-    description: "Compression fit, sweat-resistant technology",
-    category: "workout",
-    image: "https://placehold.co/400x400?text=Training+Tank"
+  const parsed = Number.parseInt(value, 10);
+  if (Number.isNaN(parsed) || parsed <= 0) {
+    return fallback;
   }
-];
+  return parsed;
+}
 
-const premiumCollection = [
-  {
-    id: 7,
-    name: "Cashmere Blend Tee",
-    price: 89.99,
-    description: "5% cashmere, 95% premium cotton - luxurious comfort",
-    category: "premium",
-    image: "https://placehold.co/400x400?text=Cashmere+Blend+Tee"
-  },
-  {
-    id: 8,
-    name: "Luxury Modal Tee",
-    price: 79.99,
-    description: "Ultra-soft modal fiber, sophisticated drape",
-    category: "premium",
-    image: "https://placehold.co/400x400?text=Luxury+Modal+Tee"
-  },
-  {
-    id: 9,
-    name: "Merino Wool Blend",
-    price: 99.99,
-    description: "Temperature regulating, odor-resistant luxury",
-    category: "premium",
-    image: "https://placehold.co/400x400?text=Merino+Wool+Blend"
-  }
-];
+const MAX_LIMIT = 50;
+const DEFAULT_LIMIT = 9;
 
-export async function GET() {
-  const allProducts = [...affordableTees, ...workoutGear, ...premiumCollection];
-  
+export async function GET(request: Request) {
+  const allProducts = getAllProducts();
+  const url = new URL(request.url);
+  const page = parsePositiveInt(url.searchParams.get("page"), 1);
+  const limit = Math.min(MAX_LIMIT, parsePositiveInt(url.searchParams.get("limit"), DEFAULT_LIMIT));
+  const startIndex = (page - 1) * limit;
+  const endIndex = startIndex + limit;
+  const pagedProducts = allProducts.slice(startIndex, endIndex);
+  const total = allProducts.length;
+  const totalPages = Math.ceil(total / limit);
+  const hasMore = endIndex < total;
+
+  const categories = CATEGORY_SLUGS.reduce<Record<string, typeof pagedProducts>>((acc, slug) => {
+    acc[slug] = PRODUCTS_BY_CATEGORY[slug];
+    return acc;
+  }, {});
+
   return NextResponse.json({
-    products: allProducts,
-    total: allProducts.length,
-    categories: {
-      affordable: affordableTees,
-      workout: workoutGear,
-      premium: premiumCollection
-    }
+    products: pagedProducts,
+    total,
+    page,
+    limit,
+    totalPages,
+    hasMore,
+    categories
   });
 }
