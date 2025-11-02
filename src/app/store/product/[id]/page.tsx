@@ -16,6 +16,7 @@ interface Product {
   colors: string[];
   sizes: string[];
   category?: string;
+  material?: string;
 }
 
 async function getProduct(id: string): Promise<Product | null> {
