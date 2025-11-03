@@ -13,10 +13,12 @@
 ```bash
 git clone your-repo
 npm install
-npm run dev  # Just works! Uses .env.development
+cp .env.local.example .env.local
+# Edit .env.local with your Stripe test keys
+npm run dev  # Now it works!
 ```
 
-**No setup needed!** The test keys are already in `.env.development`.
+**Simple setup:** Just add your Stripe test keys to `.env.local`.
 
 ### **If You Need Custom Settings:**
 ```bash
