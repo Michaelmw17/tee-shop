@@ -4,6 +4,7 @@ import ColorSquare from "../../../components/ColorSquare";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Navbar from "@/components/Navbar";
+import Image from "next/image";
 
 interface CartItem {
   id: number;
@@ -20,7 +21,35 @@ export default function CartPage() {
   const { cartItems, updateQty, clearCart } = useCart();
   const [modalItem, setModalItem] = useState<CartItem | null>(null);
   const [isHydrated, setIsHydrated] = useState(false);
+  const [loading, setLoading] = useState(false);
   const router = useRouter();
+
+  const handleCheckout = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch('/api/checkout', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ items: cartItems }),
+      });
+
+      const data = await response.json();
+      
+      if (data.url) {
+        // Modern Stripe checkout - redirect directly to checkout URL
+        window.location.href = data.url;
+      } else {
+        alert('Failed to create checkout session');
+      }
+    } catch (error) {
+      console.error('Checkout error:', error);
+      alert('Checkout failed. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Prevent hydration mismatch
   useEffect(() => {
@@ -78,9 +107,11 @@ export default function CartPage() {
                     <div className="text-sm text-gray-800 font-bold mt-1">${item.price}</div>
                   </div>
                   <div className="mt-2 min-[360px]:mt-0 flex items-center gap-2 min-[360px]:justify-end">
-                    <img
+                    <Image
                       src={item.image}
                       alt={item.name}
+                      width={80}
+                      height={80}
                       className="w-20 h-20 object-cover rounded border"
                     />
                     <div className="flex items-center gap-2">
@@ -115,6 +146,28 @@ export default function CartPage() {
             </div>
           </>
         )}
+        {/* Checkout Section */}
+        {cartItems.length > 0 && (
+          <div className="mt-8 bg-gray-50 rounded-lg p-6">
+            <div className="flex justify-between items-center mb-4">
+              <span className="text-lg font-semibold">Total:</span>
+              <span className="text-2xl font-bold text-green-600">
+                ${cartItems.reduce((sum, item) => sum + (item.price * item.qty), 0).toFixed(2)}
+              </span>
+            </div>
+            <button
+              onClick={handleCheckout}
+              disabled={loading}
+              className="w-full bg-green-600 text-white py-3 px-6 rounded-lg hover:bg-green-700 transition-colors text-lg font-semibold disabled:opacity-50"
+            >
+              {loading ? 'Redirecting to Checkout...' : 'Proceed to Checkout'}
+            </button>
+            <p className="text-sm text-gray-600 mt-2 text-center">
+              Secure checkout powered by Stripe
+            </p>
+          </div>
+        )}
+
         <div className="mt-8">
           <button
             type="button"
@@ -134,7 +187,7 @@ export default function CartPage() {
               onClick={e => e.stopPropagation()}
             >
               <div className="flex flex-col items-center">
-                <img src={modalItem.image} alt={modalItem.name} className="w-20 h-20 object-cover rounded border mb-2" />
+                <Image src={modalItem.image} alt={modalItem.name} width={80} height={80} className="w-20 h-20 object-cover rounded border mb-2" />
                 <div className="font-semibold text-lg mb-1">{modalItem.name}</div>
                 <div className="flex gap-2 mt-2">
                   <button
