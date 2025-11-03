@@ -52,10 +52,13 @@ Visit: `http://localhost:3001`
 
 ### **Environment Variables**
 ```bash
-# No setup needed! Test keys already configured in .env.development
-npm run dev  # Just works!
+# Copy the template and add your Stripe test keys
+cp .env.local.example .env.local
 
-# Optional: Create .env.local only if you need custom settings
+# Edit .env.local with your test keys from:
+# https://dashboard.stripe.com/test/apikeys
+
+npm run dev  # Now it works!
 ```
 
 ## 🚀 **LAUNCH YOUR BUSINESS (30 minutes)**
