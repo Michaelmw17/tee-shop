@@ -30,12 +30,14 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files (can opt-in for committing if needed)
-.env*
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
+# Environment files - security policy
+.env.local              # Personal overrides (may contain secrets)
+.env.production         # Production secrets (never commit)
+.env.*.local            # Any local overrides
+
+# Safe to commit:
+# .env.development       # Test keys only (safe to share)
+# .env.local.example     # Template file
 
 # vercel
 .vercel
