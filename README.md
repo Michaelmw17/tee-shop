@@ -1,5 +1,23 @@
 # 🎯 T-Shirt Shop - Ready for Business!
 
+## ⚡ **QUICK START - Fix Checkout Error**
+
+**Getting "Failed to create checkout session"?** You need to add your Stripe keys:
+
+1. **Get Stripe Test Keys**: https://dashboard.stripe.com/test/apikeys
+2. **Create `.env.local`** file in the root directory:
+```bash
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_your_actual_key_here
+STRIPE_SECRET_KEY=sk_test_your_actual_key_here
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+```
+3. **Restart the server**: `npm run dev`
+4. **Test with card**: `4242 4242 4242 4242`
+
+**That's it!** Your checkout will work perfectly. 🎉
+
+---
+
 ## 🚀 **WHAT YOU HAVE**
 
 A **professional, cost-effective T-shirt e-commerce store** built with:

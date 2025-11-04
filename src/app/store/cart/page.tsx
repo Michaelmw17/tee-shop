@@ -40,8 +40,16 @@ export default function CartPage() {
       if (data.url) {
         // Modern Stripe checkout - redirect directly to checkout URL
         window.location.href = data.url;
+      } else if (data.message && data.setupUrl) {
+        // Development mode with helpful setup message
+        const setupNow = confirm(
+          `${data.message}\n\nWould you like to open the Stripe dashboard to get your test keys?`
+        );
+        if (setupNow) {
+          window.open(data.setupUrl, '_blank');
+        }
       } else {
-        alert('Failed to create checkout session');
+        alert(`Failed to create checkout session: ${data.error || 'Unknown error'}`);
       }
     } catch (error) {
       console.error('Checkout error:', error);
