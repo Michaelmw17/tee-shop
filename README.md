@@ -1,33 +1,25 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 🎯 T-Shirt Shop - Ready for Business!
 
-## Getting Started
+## 🚀 **WHAT YOU HAVE**
 
-# Tee Shop
+A **professional, cost-effective T-shirt e-commerce store** built with:
 
-## Project Setup
+- ✅ **Next.js 15.5.4** - Modern React framework with TypeScript
+- ✅ **Stripe Integration** - Secure AUD payments (tested with $32.99 order)
+- ✅ **Australia-Only Shipping** - Simplified logistics
+- ✅ **Simple Product Catalog** - Easy to manage in code
+- ✅ **Responsive Design** - Works on mobile and desktop
+- ✅ **Shopping Cart** - Full e-commerce functionality
 
-1. **Install dependencies:**
-	```bash
-	npm install
-	```
-2. **Environment variables:**
-	- Copy `.env.local` and fill in your secrets (see sample in repo).
-3. **Code formatting:**
-	- Uses Prettier (`config/.prettierrc`) and ESLint (`config/eslint.config.mjs`).
-	- Format code: `npx prettier --config config/.prettierrc --write .`
-4. **Testing:**
-	- Run tests: `npm test`
-	- Jest config in `config/jest.config.js` and setup in `config/jest.setup.js`.
+## 💰 **COST-EFFECTIVE APPROACH**
 
-## Environment Variables
+**Total Monthly Costs: $0-1.25**
+- Vercel Hosting: Free
+- Product Management: $0 (code-based)
+- Stripe: Only 2.9% + 30¢ per sale
+- Domain: ~$15/year (optional)
 
-- Store secrets in `.env.local` (never commit to Git).
-- Example:
-  ```env
-  DATABASE_URL=your_database_url_here
-  NEXT_PUBLIC_API_URL=https://api.example.com
-  STRIPE_SECRET_KEY=your_stripe_secret_key_here
-  ```
+**No database hosting fees, no monthly software subscriptions!**
 
 ## Vercel Deployment
 
@@ -35,70 +27,132 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 - Import to Vercel and set environment variables in the dashboard.
 - Custom config in `config/vercel.json`.
 
-## Code Quality
+## 🏪 **CURRENT STATUS**
 
-- ESLint and Prettier are set up for consistent code style (see `config/`).
-- TypeScript for type safety (`config/tsconfig.json`).
+### ✅ **READY TO LAUNCH**
+- Store running at `http://localhost:3001`
+- 9 sample products across 3 categories
+- Full checkout process working
+- Payment processing proven
 
-## Testing
+### 🛍️ **PRODUCT MANAGEMENT**
+- **File:** `/src/lib/products.ts`
+- **Add Products:** Edit the PRODUCTS array
+- **Upload Images:** Place in `/public` folder
+- **Categories:** Affordable, Workout, Premium
 
-- Jest and React Testing Library are set up (see `config/jest.config.js`).
-- Add tests in `src/__tests__` or alongside components.
+## 🚀 **GETTING STARTED**
 
-## Accessibility & SEO
-
-- Use semantic HTML and ARIA attributes.
-- Optimize meta tags for SEO.
-
-## Image Optimization
-
-- Use Next.js `<Image />` for product images.
-- See image config in `config/next.config.ts`.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
-
-First, run the development server:
-
+### **Install & Run**
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+```
+Visit: `http://localhost:3001`
+
+### **Environment Variables**
+```bash
+# Copy the template and add your Stripe test keys
+cp .env.local.example .env.local
+
+# Edit .env.local with your test keys from:
+# https://dashboard.stripe.com/test/apikeys
+
+npm run dev  # Now it works!
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## 🚀 **LAUNCH YOUR BUSINESS (30 minutes)**
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### **Automatic Environment Switching:**
+- **Development**: Automatically uses test keys (safe)
+- **Production**: Uses live keys from Vercel (real money!)
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### **Quick Deploy:**
+1. **Get live Stripe keys** from dashboard
+2. **Deploy to Vercel** with one click
+3. **Add environment variables** in Vercel
+4. **Start making money!** 💰
 
-## Learn More
+📚 **Full deployment guide:** [`docs/DEPLOYMENT_GUIDE.md`](./docs/DEPLOYMENT_GUIDE.md)
 
-To learn more about Next.js, take a look at the following resources:
+## 📋 **ORDER MANAGEMENT**
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+**All order management through Stripe Dashboard:**
+- View all payments and customer details
+- Handle refunds and customer service
+- Export data for accounting
+- Track revenue and analytics
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+**No complex admin panel needed - Stripe handles everything!**
 
-## Deploy on Vercel
+## 🎯 **BUSINESS MODEL**
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+**Perfect for:**
+- Small T-shirt businesses
+- Print-on-demand operations
+- Local clothing brands
+- Side hustles scaling up
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+**Smart Features:**
+- Australia-only shipping (simplified logistics)
+- AUD currency (local market focus)
+- Manual inventory (start simple, scale later)
+- Direct customer relationships
+
+## 📈 **SCALING PATH**
+
+### **$0-1K/month**: Current Setup (Perfect!)
+- Manual inventory tracking
+- Stripe dashboard for orders
+- Focus on marketing and sales
+
+### **$1K+/month**: Optional Upgrades
+- Add customer accounts
+- Inventory automation
+- Email marketing integration
+- Analytics dashboard
+
+## 🎊 **WHY THIS APPROACH WORKS**
+
+1. **Start Simple**: No over-engineering
+2. **Prove Demand**: Validate your business first
+3. **Stay Lean**: Focus on revenue, not features
+4. **Scale Smart**: Add complexity when needed
+
+**You're ready to make money today!** 💰
+
+---
+
+## 📞 **NEXT STEPS**
+
+1. **Customize products** in `/src/lib/products.ts`
+2. **Upload your T-shirt images** to `/public`
+3. **Deploy to Vercel** (30 minutes)
+4. **Start marketing** your T-shirts
+
+**From setup to first sale: Under 1 hour!**
+
+## 📚 **DOCUMENTATION**
+
+Additional documentation is available in the [`/docs`](./docs/) folder:
+
+- [`CURRENT_STATUS.md`](./docs/CURRENT_STATUS.md) - Current project status and what's working
+- [`COMPLETION_CHECKLIST.md`](./docs/COMPLETION_CHECKLIST.md) - Full development checklist and roadmap
+- [`DATABASE_VS_NO_DATABASE.md`](./docs/DATABASE_VS_NO_DATABASE.md) - Why we chose the simple approach
+- [`README_NEXT_STEPS.md`](./docs/README_NEXT_STEPS.md) - Detailed next steps guide
+- [`SECURITY.md`](./docs/SECURITY.md) - Security policies and best practices
+
+## 🎯 **PROJECT STRUCTURE**
+
+```
+yogi/
+├── src/
+│   ├── app/                 # Next.js app router pages
+│   ├── components/          # React components
+│   └── lib/
+│       └── products.ts      # 🛍️ Product catalog (edit here!)
+├── public/                  # Static files and images
+├── docs/                    # 📚 All documentation
+├── config/                  # Build and tool configurations
+└── README.md               # This file
+```

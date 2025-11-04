@@ -5,6 +5,7 @@ import { useCart } from "@/components/CartContext";
 import { useParams } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import ColorSquare from "@/components/ColorSquare";
+import Image from "next/image";
 
 // Mock fallback for product data shape
 interface Product {
@@ -117,16 +118,18 @@ export default function ProductPage() {
                   onClick={() => setSelectedImage(idx)}
                   aria-label={`Show image ${idx + 1}`}
                 >
-                  <img src={img} alt={`Thumbnail ${idx + 1}`} className="w-12 h-12 object-cover rounded" />
+                  <Image src={img} alt={`Thumbnail ${idx + 1}`} width={48} height={48} className="w-12 h-12 object-cover rounded" />
                 </button>
               ))}
             </div>
             {/* Main image */}
             <div className="md:order-2 order-1 flex justify-center items-center">
               {imageLoading && <Loader />}
-              <img
+              <Image
                 src={product.images[selectedImage]}
                 alt={product.name}
+                width={384}
+                height={384}
                 className={`rounded-lg object-cover w-48 h-48 sm:w-64 sm:h-64 md:w-96 md:h-96 ${imageLoading ? "hidden" : "block"}`}
                 onLoad={() => setImageLoading(false)}
                 onError={() => setImageLoading(false)}

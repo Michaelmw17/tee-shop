@@ -1,8 +1,6 @@
 import React from "react";
 import {
   COLOR_SWATCH_MAP,
-  ORDERED_COLOR_KEYS,
-  SupportedColor,
   getCanonicalColorName
 } from "@/data/colors";
 
@@ -15,8 +13,6 @@ interface ColorSquareProps {
   onClick: () => void;
   className?: string;
 }
-
-const CANONICAL_KEYS: readonly SupportedColor[] = ORDERED_COLOR_KEYS;
 
 export default function ColorSquare({ color, selected, onClick, className }: ColorSquareProps) {
   const canonical = getCanonicalColorName(color);
