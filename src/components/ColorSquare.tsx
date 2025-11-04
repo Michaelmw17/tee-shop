@@ -1,4 +1,13 @@
 import React from "react";
+import {
+  COLOR_SWATCH_MAP,
+  ORDERED_COLOR_KEYS,
+  SupportedColor,
+  getCanonicalColorName
+} from "@/data/colors";
+
+export { COLOR_SWATCH_MAP, ORDERED_COLOR_KEYS, getCanonicalColorName } from "@/data/colors";
+export type { SupportedColor } from "@/data/colors";
 
 interface ColorSquareProps {
   color: string;
@@ -7,36 +16,21 @@ interface ColorSquareProps {
   className?: string;
 }
 
-// Map color names to CSS color values for common cases
-const colorMap: Record<string, string> = {
-  white: "#fff",
-  black: "#222",
-  navy: "#001f3f",
-  grey: "#888",
-  pink: "#ff69b4",
-  blue: "#0074d9",
-  red: "#ff4136",
-  green: "#2ecc40",
-  charcoal: "#36454F",
-  cream: "#f5f5dc",
-  burgundy: "#800020",
-  taupe: "#b38b6d",
-  rose: "#ff007f",
-  camel: "#c19a6b",
-  forest: "#228b22",
-  orange: "#ff851b"
-};
+const CANONICAL_KEYS: readonly SupportedColor[] = ORDERED_COLOR_KEYS;
 
 export default function ColorSquare({ color, selected, onClick, className }: ColorSquareProps) {
-  const bgColor = colorMap[color.toLowerCase()] || color;
+  const canonical = getCanonicalColorName(color);
+  const bgColor = canonical ? COLOR_SWATCH_MAP[canonical] : "#d1d5db";
+
   return (
       <button
       type="button"
-      aria-label={color}
+      aria-label={canonical ? canonical.charAt(0).toUpperCase() + canonical.slice(1) : color}
+      title={canonical ? canonical.charAt(0).toUpperCase() + canonical.slice(1) : color}
       onClick={onClick}
         className={`relative w-6 h-6 rounded border flex items-center justify-center transition-all duration-150 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400
           ${selected ? "border-green-500 ring-2 ring-green-300" : "border-gray-300"}
-          ${color.toLowerCase() === "white" ? "border-gray-400" : ""}
+          ${canonical === "white" ? "border-gray-400" : ""}
           ${className || ""}`}
       style={{ backgroundColor: bgColor }}
     >
