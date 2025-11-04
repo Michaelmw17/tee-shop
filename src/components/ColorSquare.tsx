@@ -16,8 +16,6 @@ interface ColorSquareProps {
   className?: string;
 }
 
-const CANONICAL_KEYS: readonly SupportedColor[] = ORDERED_COLOR_KEYS;
-
 export default function ColorSquare({ color, selected, onClick, className }: ColorSquareProps) {
   const canonical = getCanonicalColorName(color);
   const bgColor = canonical ? COLOR_SWATCH_MAP[canonical] : "#d1d5db";
