@@ -1,8 +1,6 @@
 import React from "react";
 import {
   COLOR_SWATCH_MAP,
-  ORDERED_COLOR_KEYS,
-  SupportedColor,
   getCanonicalColorName
 } from "@/data/colors";
 
