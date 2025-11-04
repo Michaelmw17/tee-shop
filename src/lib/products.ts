@@ -10,6 +10,7 @@ export interface Product {
   image: string
   sizes: string[]
   colors: string[]
+  material: string
 }
 
 // 🎯 YOUR PRODUCT CATALOG - Edit here to add/remove products
@@ -23,7 +24,8 @@ const PRODUCTS: Product[] = [
     category: "affordable",
     image: "https://placehold.co/400x400?text=Basic+Cotton+Tee",
     sizes: ["XS", "S", "M", "L", "XL"],
-    colors: ["White", "Black", "Navy", "Grey"]
+    colors: ["White", "Black", "Navy", "Grey"],
+    material: "100% Cotton"
   },
   {
     id: 2,
@@ -33,7 +35,8 @@ const PRODUCTS: Product[] = [
     category: "affordable",
     image: "https://placehold.co/400x400?text=Essential+V-Neck",
     sizes: ["XS", "S", "M", "L", "XL"],
-    colors: ["White", "Black", "Pink", "Blue"]
+    colors: ["White", "Black", "Pink", "Blue"],
+    material: "Cotton Blend"
   },
   {
     id: 3,
@@ -43,7 +46,8 @@ const PRODUCTS: Product[] = [
     category: "affordable",
     image: "https://placehold.co/400x400?text=Classic+Crew+Neck",
     sizes: ["XS", "S", "M", "L", "XL", "XXL"],
-    colors: ["White", "Black", "Red", "Green"]
+    colors: ["White", "Black", "Red", "Green"],
+    material: "Heavyweight Cotton"
   },
 
   // WORKOUT CATEGORY  
@@ -55,7 +59,8 @@ const PRODUCTS: Product[] = [
     category: "workout",
     image: "https://placehold.co/400x400?text=Performance+Tee",
     sizes: ["XS", "S", "M", "L", "XL"],
-    colors: ["Black", "Navy", "Charcoal", "Red"]
+    colors: ["Black", "Navy", "Charcoal", "Red"],
+    material: "Performance Polyester"
   },
   {
     id: 5,
@@ -65,7 +70,8 @@ const PRODUCTS: Product[] = [
     category: "workout",
     image: "https://placehold.co/400x400?text=Athletic+Singlet",
     sizes: ["S", "M", "L", "XL"],
-    colors: ["Black", "White", "Blue", "Orange"]
+    colors: ["Black", "White", "Blue", "Orange"],
+    material: "Mesh Polyester"
   },
   {
     id: 6,
@@ -75,7 +81,8 @@ const PRODUCTS: Product[] = [
     category: "workout",
     image: "https://placehold.co/400x400?text=Training+Tank+Top",
     sizes: ["S", "M", "L", "XL"],
-    colors: ["Black", "Grey", "Navy", "Green"]
+    colors: ["Black", "Grey", "Navy", "Green"],
+    material: "Compression Blend"
   },
 
   // PREMIUM CATEGORY
@@ -87,7 +94,8 @@ const PRODUCTS: Product[] = [
     category: "premium",
     image: "https://placehold.co/400x400?text=Cashmere+Blend+Tee",
     sizes: ["XS", "S", "M", "L", "XL"],
-    colors: ["Cream", "Charcoal", "Navy", "Burgundy"]
+    colors: ["Cream", "Charcoal", "Navy", "Burgundy"],
+    material: "Cashmere Cotton Blend"
   },
   {
     id: 8,
@@ -97,7 +105,8 @@ const PRODUCTS: Product[] = [
     category: "premium",
     image: "https://placehold.co/400x400?text=Luxury+Modal+Tee",
     sizes: ["XS", "S", "M", "L", "XL"],
-    colors: ["White", "Black", "Taupe", "Rose"]
+    colors: ["White", "Black", "Taupe", "Rose"],
+    material: "Modal Blend"
   },
   {
     id: 9,
@@ -107,7 +116,8 @@ const PRODUCTS: Product[] = [
     category: "premium",
     image: "https://placehold.co/400x400?text=Merino+Wool+Blend",
     sizes: ["XS", "S", "M", "L", "XL"],
-    colors: ["Charcoal", "Navy", "Camel", "Forest"]
+    colors: ["Charcoal", "Navy", "Camel", "Forest"],
+    material: "Merino Wool Blend"
   }
 ];
 

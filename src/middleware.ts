@@ -2,7 +2,7 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-export function adminMiddleware(request: NextRequest) {
+export function middleware(request: NextRequest) {
   // Check if it's an admin route
   if (request.nextUrl.pathname.startsWith('/admin')) {
     // Check for admin session cookie

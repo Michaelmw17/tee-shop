@@ -10,15 +10,39 @@ const stripe = process.env.STRIPE_SECRET_KEY
 
 export async function POST(request: NextRequest) {
   try {
+    console.log('🚀 Checkout API called');
+    
     // Check if Stripe is properly configured
     if (!stripe) {
+      console.error('❌ Stripe not configured - check STRIPE_SECRET_KEY');
+      
+      // In development, provide helpful error message
+      if (process.env.NODE_ENV === 'development') {
+        return NextResponse.json({ 
+          error: 'Stripe not configured',
+          message: 'Please add your Stripe test keys to .env.local file. See SETUP_GUIDE.md for instructions.',
+          setupUrl: 'https://dashboard.stripe.com/test/apikeys'
+        }, { status: 500 });
+      }
+      
       return NextResponse.json({ error: 'Stripe not configured' }, { status: 500 });
     }
+    
     const { items } = await request.json();
+    console.log('📦 Items received:', items);
 
     // Validate items
     if (!items || !Array.isArray(items) || items.length === 0) {
+      console.error('❌ No items provided');
       return NextResponse.json({ error: 'Invalid items' }, { status: 400 });
+    }
+
+    // Validate each item has required fields
+    for (const item of items) {
+      if (!item.id || !item.name || !item.price || !item.qty) {
+        console.error('❌ Invalid item structure:', item);
+        return NextResponse.json({ error: 'Invalid item data' }, { status: 400 });
+      }
     }
 
     // Convert cart items to Stripe line items
@@ -29,7 +53,7 @@ export async function POST(request: NextRequest) {
       size: string;
       color: string;
       image: string;
-      quantity: number;
+      qty: number;
     }) => ({
       price_data: {
         currency: 'aud',
@@ -44,8 +68,10 @@ export async function POST(request: NextRequest) {
         },
         unit_amount: Math.round(item.price * 100), // Convert to cents
       },
-      quantity: item.quantity,
+      quantity: item.qty,
     }));
+
+    console.log('💰 Creating Stripe session with line items:', lineItems);
 
     // Create Stripe checkout session
     const session = await stripe.checkout.sessions.create({
@@ -106,6 +132,8 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    console.log('✅ Stripe session created:', session.id);
+    
     return NextResponse.json({ 
       sessionId: session.id,
       url: session.url 
@@ -113,8 +141,16 @@ export async function POST(request: NextRequest) {
     
   } catch (error: unknown) {
     console.error('Stripe checkout error:', error);
+    
+    // Provide more detailed error information in development
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    const isDevelopment = process.env.NODE_ENV === 'development';
+    
     return NextResponse.json(
-      { error: 'Failed to create checkout session' },
+      { 
+        error: 'Failed to create checkout session',
+        ...(isDevelopment && { details: errorMessage })
+      },
       { status: 500 }
     );
   }
