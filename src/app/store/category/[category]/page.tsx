@@ -11,18 +11,7 @@ import {
   SupportedColor
 } from "@/components/ColorSquare";
 import ProductCard from "../../../../components/ProductCard";
-
-interface Product {
-  id: number;
-  name: string;
-  price: number;
-  description: string;
-  category: string;
-  image: string;
-  sizes: string[];
-  colors: string[];
-  material?: string;
-}
+import { Product } from "@/lib/products";
 
 const COLOR_MAP: Record<string, string> = {
   ...COLOR_SWATCH_MAP
