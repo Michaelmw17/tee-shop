@@ -2,57 +2,60 @@
 
 import React, { useState, useEffect } from "react";
 import { useCart } from "@/components/CartContext";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import ColorSquare from "@/components/ColorSquare";
 import Image from "next/image";
+import { Product } from "@/types/product";
+import { BETA_MODE, BETA_ENABLED_PRODUCTS } from "@/config/beta";
 
-// Mock fallback for product data shape
-interface Product {
-  id: string;
-  name: string;
-  price: number;
-  description: string;
-  images: string[];
-  colors: string[];
-  sizes: string[];
-  category?: string;
-  material?: string;
-}
+// Extended Product type with string ID for URL params
+type ProductWithStringId = Omit<Product, 'id'> & { id: string };
 
-async function getProduct(id: string): Promise<Product | null> {
+async function getProduct(id: string): Promise<ProductWithStringId | null> {
   const res = await fetch(`/api/products/${id}`);
   if (!res.ok) return null;
   const data = await res.json();
-  // Fallback for old API shape
-  if (data.product.images && data.product.colors && data.product.sizes) {
-    return data.product;
-  }
-  // Convert old shape to new
+  
+  // API returns Product with number id, convert to string for component
   return {
     ...data.product,
-    images: [data.product.image],
-    colors: ["Black"],
-    sizes: ["S", "M", "L", "XL"],
+    id: String(data.product.id)
   };
 }
 
 export default function ProductPage() {
   const { id } = useParams<{ id: string }>();
+  const router = useRouter();
   const [product, setProduct] = useState<Product | null>(null);
   const [category, setCategory] = useState<string>("");
   const [selectedImage, setSelectedImage] = useState(0);
   const [selectedColor, setSelectedColor] = useState<string>("");
   const [selectedSize, setSelectedSize] = useState<string>("");
   const [quantity, setQuantity] = useState(1);
-  // Remove local cartCount, use global CartContext
-  // const [cartCount, setCartCount] = useState(0);
   const { addToCart } = useCart();
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   const [imageLoading, setImageLoading] = useState(true);
+  const [showColorPrompt, setShowColorPrompt] = useState(false);
+  const [showSizePrompt, setShowSizePrompt] = useState(false);
+  const [betaChecked, setBetaChecked] = useState(false);
+
+  // Beta mode: Block access to non-beta products immediately
+  useEffect(() => {
+    if (BETA_MODE) {
+      const productId = parseInt(id);
+      if (!BETA_ENABLED_PRODUCTS.includes(productId)) {
+        router.push('/not-found');
+        return;
+      }
+    }
+    setBetaChecked(true);
+  }, [id, router]);
 
   useEffect(() => {
+    if (!betaChecked) return; // Don't load product until beta check is complete
+    
     setLoading(true);
     getProduct(id).then((data) => {
       setProduct(data);
@@ -64,7 +67,7 @@ export default function ProductPage() {
       }
       setLoading(false);
     });
-  }, [id]);
+  }, [id, betaChecked]);
 
   // Loader spinner component
   const Loader = () => (
@@ -140,33 +143,70 @@ export default function ProductPage() {
           {/* Right column: all product info and actions */}
           <div className="md:w-1/2 w-full flex flex-col gap-6">
             {/* Gray box for options */}
-            <div className="bg-gray-100 rounded-lg p-4 flex flex-col gap-4 border border-gray-300 shadow-sm">
+            <div className={`bg-gray-100 rounded-lg p-4 flex flex-col gap-4 border border-gray-300 shadow-sm ${showColorPrompt || showSizePrompt ? 'button-hovered' : ''}`}>
               {/* Color options */}
-              <div className="flex flex-row gap-2 items-center">
-                <span className="font-semibold">Color:</span>
-                {product.colors.map((color) => (
-                  <ColorSquare
-                    key={color}
-                    color={color}
-                    selected={selectedColor === color}
-                    onClick={() => setSelectedColor(color)}
-                  />
-                ))}
+              <div className={`flex flex-row gap-2 items-center transition-all ${
+                showColorPrompt ? 'animate-shake' : ''
+              }`}>
+                <span className={`font-semibold transition-colors ${
+                  !selectedColor && showColorPrompt ? 'text-red-600' : ''
+                }`}>Color: {!selectedColor && showColorPrompt && <span className="text-red-600">*</span>}</span>
+                <div className="flex gap-2">
+                  {product.colors.map((color) => (
+                    <div
+                      key={color}
+                      className={`transform transition-transform hover:scale-125 ${
+                        !selectedColor && showColorPrompt 
+                          ? 'wiggle-on-hover' 
+                          : ''
+                      }`}
+                    >
+                      <ColorSquare
+                        color={color}
+                        selected={selectedColor === color}
+                        onClick={() => {
+                          if (selectedColor === color) {
+                            setSelectedColor(""); // Deselect if already selected
+                          } else {
+                            setSelectedColor(color); // Select new color
+                          }
+                          setShowColorPrompt(false);
+                        }}
+                      />
+                    </div>
+                  ))}
+                </div>
               </div>
               {/* Size dropdown */}
-              <div className="flex items-center gap-2 w-full">
-                <span className="font-semibold w-20">Size:</span>
-                <div className="flex-1">
+              <div className={`flex items-center gap-2 w-full ${!selectedSize && showSizePrompt ? 'shake-on-hover' : ''}`}>
+                <span className={`font-semibold w-20 transition-colors ${
+                  !selectedSize && showSizePrompt ? 'text-red-600' : ''
+                }`}>Size: {!selectedSize && showSizePrompt && <span className="text-red-600">*</span>}</span>
+                <div className="flex-1 relative">
                   <select
-                    className="w-full px-4 py-2 rounded-lg border border-gray-300 bg-white text-gray-700 text-base shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all text-center"
+                    className={`w-full pl-4 pr-10 py-2 rounded-lg border-2 bg-white text-gray-700 text-base shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all text-center hover:border-blue-400 appearance-none ${
+                      selectedSize 
+                        ? 'border-green-500' 
+                        : showSizePrompt 
+                        ? 'border-red-400 animate-shake' 
+                        : 'border-gray-300'
+                    }`}
                     value={selectedSize}
-                    onChange={e => setSelectedSize(e.target.value)}
+                    onChange={e => {
+                      setSelectedSize(e.target.value);
+                      setShowSizePrompt(false);
+                    }}
                   >
                     <option value="" className="text-gray-400 text-center">Select size</option>
                     {product.sizes.map(size => (
                       <option key={size} value={size} className="text-gray-700 text-center">{size}</option>
                     ))}
                   </select>
+                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3 text-gray-700">
+                    <svg className="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+                    </svg>
+                  </div>
                 </div>
               </div>
               {/* Quantity */}
@@ -180,21 +220,31 @@ export default function ProductPage() {
                     max={99}
                     value={quantity}
                     onChange={e => setQuantity(Math.max(1, Number(e.target.value)))}
-                    className="w-full px-4 py-2 rounded-lg border border-gray-300 bg-white text-gray-700 text-base shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all text-center"
+                    className="w-full px-4 py-2 rounded-lg border-2 border-gray-300 bg-white text-gray-700 text-base shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all text-center hover:border-blue-400"
                   />
                 </div>
               </div>
               {/* Add to Cart */}
               <button
-                className={`w-full bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700 transition-colors text-xs sm:text-sm mb-2 ${!selectedSize ? "opacity-50 cursor-not-allowed" : ""}`}
-                disabled={!selectedSize}
-                onClick={() => {
-                  if (!selectedSize) {
-                    setError("Please select a size.");
-                    return;
-                  }
+                type="button"
+                className={`w-full bg-blue-600 text-white py-2 px-4 rounded transition-colors text-xs sm:text-sm mb-2 font-medium ${
+                  !selectedSize || !selectedColor ? "opacity-50 cursor-not-allowed" : "hover:bg-blue-700"
+                }`}
+                title={!selectedColor ? "Please select a color" : !selectedSize ? "Please select a size" : "Add to cart"}
+                onMouseEnter={() => {
                   if (!selectedColor) {
-                    setError("Please select a color.");
+                    setShowColorPrompt(true);
+                  }
+                  if (!selectedSize) {
+                    setShowSizePrompt(true);
+                  }
+                }}
+                onMouseLeave={() => {
+                  setShowColorPrompt(false);
+                  setShowSizePrompt(false);
+                }}
+                onClick={() => {
+                  if (!selectedColor || !selectedSize) {
                     return;
                   }
                   addToCart({
@@ -209,7 +259,11 @@ export default function ProductPage() {
                   setError("");
                 }}
               >
-                Add to Cart
+                {!selectedColor
+                  ? "Select a color" 
+                  : !selectedSize 
+                  ? "Select a size" 
+                  : "Add to Cart"}
               </button>
               {error && <div className="text-red-600 text-sm mt-1">{error}</div>}
             </div>
