@@ -4,18 +4,7 @@ import ProductCard from "../components/ProductCard";
 import { MutableRefObject, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { BETA_MODE, BETA_MESSAGES } from "@/config/beta";
-import { getBetaProduct } from "@/lib/products";
-
-interface Product {
-  id: number;
-  name: string;
-  price: number;
-  description: string;
-  category: string;
-  image: string;
-  sizes: string[];
-  colors: string[];
-}
+import { getBetaProduct, Product } from "@/lib/products";
 
 type CategoryKey = "affordable" | "workout" | "premium";
 
