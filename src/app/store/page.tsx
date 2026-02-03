@@ -55,7 +55,7 @@ export default function StorePage() {
 
           {/* Beta Product Card */}
           <div className="max-w-md mx-auto">
-            <ProductCard product={betaProduct} />
+            <ProductCard product={betaProduct} category={betaProduct.category} />
           </div>
 
           {/* Additional Info */}
