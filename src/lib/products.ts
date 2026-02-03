@@ -1,17 +1,11 @@
 // Simple product management without database complexity
 // Edit this file to add/remove products and manage your inventory
 
-export interface Product {
-  id: number
-  name: string
-  price: number
-  description: string
-  category: string
-  image: string
-  sizes: string[]
-  colors: string[]
-  material: string
-}
+import { BETA_MODE, BETA_ENABLED_PRODUCTS, BETA_FEATURES } from '@/config/beta';
+import { Product } from '@/types/product';
+
+// Re-export Product type for backwards compatibility
+export type { Product };
 
 // 🎯 YOUR PRODUCT CATALOG - Edit here to add/remove products
 const PRODUCTS: Product[] = [
@@ -22,7 +16,7 @@ const PRODUCTS: Product[] = [
     price: 19.99,
     description: "100% cotton, comfortable fit, everyday wear",
     category: "affordable",
-    image: "https://placehold.co/400x400?text=Basic+Cotton+Tee",
+    images: ["https://placehold.co/400x400?text=Basic+Cotton+Tee"],
     sizes: ["XS", "S", "M", "L", "XL"],
     colors: ["White", "Black", "Navy", "Grey"],
     material: "100% Cotton"
@@ -33,7 +27,7 @@ const PRODUCTS: Product[] = [
     price: 22.99,
     description: "Soft cotton blend, versatile styling",
     category: "affordable",
-    image: "https://placehold.co/400x400?text=Essential+V-Neck",
+    images: ["https://placehold.co/400x400?text=Essential+V-Neck"],
     sizes: ["XS", "S", "M", "L", "XL"],
     colors: ["White", "Black", "Pink", "Blue"],
     material: "Cotton Blend"
@@ -44,7 +38,7 @@ const PRODUCTS: Product[] = [
     price: 24.99,
     description: "Timeless design, durable construction",
     category: "affordable",
-    image: "https://placehold.co/400x400?text=Classic+Crew+Neck",
+    images: ["https://placehold.co/400x400?text=Classic+Crew+Neck"],
     sizes: ["XS", "S", "M", "L", "XL", "XXL"],
     colors: ["White", "Black", "Red", "Green"],
     material: "Heavyweight Cotton"
@@ -57,7 +51,7 @@ const PRODUCTS: Product[] = [
     price: 29.99,
     description: "Moisture-wicking, breathable, perfect for workouts",
     category: "workout",
-    image: "https://placehold.co/400x400?text=Performance+Tee",
+    images: ["https://placehold.co/400x400?text=Performance+Tee"],
     sizes: ["XS", "S", "M", "L", "XL"],
     colors: ["Black", "Navy", "Charcoal", "Red"],
     material: "Performance Polyester"
@@ -68,7 +62,7 @@ const PRODUCTS: Product[] = [
     price: 27.99,
     description: "Lightweight, quick-dry fabric for intense training",
     category: "workout",
-    image: "https://placehold.co/400x400?text=Athletic+Singlet",
+    images: ["https://placehold.co/400x400?text=Athletic+Singlet"],
     sizes: ["S", "M", "L", "XL"],
     colors: ["Black", "White", "Blue", "Orange"],
     material: "Mesh Polyester"
@@ -79,7 +73,7 @@ const PRODUCTS: Product[] = [
     price: 34.99,
     description: "Compression fit, sweat-resistant technology",
     category: "workout",
-    image: "https://placehold.co/400x400?text=Training+Tank+Top",
+    images: ["https://placehold.co/400x400?text=Training+Tank+Top"],
     sizes: ["S", "M", "L", "XL"],
     colors: ["Black", "Grey", "Navy", "Green"],
     material: "Compression Blend"
@@ -88,14 +82,14 @@ const PRODUCTS: Product[] = [
   // PREMIUM CATEGORY
   {
     id: 7,
-    name: "Cashmere Blend Tee",
-    price: 89.99,
-    description: "5% cashmere, 95% premium cotton - luxurious comfort",
+    name: "Premium Cotton Tee",
+    price: 79.99,
+    description: "100% cotton, responsibly sourced, finished locally. Regular premium fit, 240-260 GSM weight for exceptional comfort and durability.",
     category: "premium",
-    image: "https://placehold.co/400x400?text=Cashmere+Blend+Tee",
-    sizes: ["XS", "S", "M", "L", "XL"],
-    colors: ["Cream", "Charcoal", "Navy", "Burgundy"],
-    material: "Cashmere Cotton Blend"
+    images: ["https://placehold.co/400x400?text=Premium+Cotton+Tee"],
+    sizes: ["S", "M", "L", "XL"],
+    colors: ["Black", "Off-White"],
+    material: "100% Cotton (240-260 GSM) • Responsibly Sourced • Locally Finished"
   },
   {
     id: 8,
@@ -103,7 +97,7 @@ const PRODUCTS: Product[] = [
     price: 79.99,
     description: "Ultra-soft modal fiber, sophisticated drape",
     category: "premium",
-    image: "https://placehold.co/400x400?text=Luxury+Modal+Tee",
+    images: ["https://placehold.co/400x400?text=Luxury+Modal+Tee"],
     sizes: ["XS", "S", "M", "L", "XL"],
     colors: ["White", "Black", "Taupe", "Rose"],
     material: "Modal Blend"
@@ -114,28 +108,42 @@ const PRODUCTS: Product[] = [
     price: 99.99,
     description: "Temperature regulating, odor-resistant luxury",
     category: "premium",
-    image: "https://placehold.co/400x400?text=Merino+Wool+Blend",
+    images: ["https://placehold.co/400x400?text=Merino+Wool+Blend"],
     sizes: ["XS", "S", "M", "L", "XL"],
     colors: ["Charcoal", "Navy", "Camel", "Forest"],
     material: "Merino Wool Blend"
   }
 ];
 
-// 📦 PRODUCT FUNCTIONS - Simple and reliable
+// 📦 PRODUCT FUNCTIONS - Simple and reliable with beta support
+
+// Beta-aware: Get products based on beta configuration
 export function getAllProducts(): Product[] {
+  if (BETA_MODE && !BETA_FEATURES.allowMultipleProducts) {
+    return PRODUCTS.filter(product => BETA_ENABLED_PRODUCTS.includes(product.id));
+  }
   return PRODUCTS;
 }
 
 export function getProductsByCategory(category: string): Product[] {
-  return PRODUCTS.filter(product => product.category === category);
+  const products = getAllProducts(); // Uses beta filtering
+  return products.filter(product => product.category === category);
 }
 
 export function getProductById(id: number): Product | null {
+  // Always allow getting product by ID (for direct links, cart, checkout)
   return PRODUCTS.find(product => product.id === id) || null;
 }
 
 export function getCategories(): string[] {
-  return [...new Set(PRODUCTS.map(product => product.category))];
+  const products = getAllProducts(); // Uses beta filtering
+  return [...new Set(products.map(product => product.category))];
+}
+
+// Beta helper: Get the primary beta product
+export function getBetaProduct(): Product | null {
+  if (!BETA_MODE || BETA_ENABLED_PRODUCTS.length === 0) return null;
+  return getProductById(BETA_ENABLED_PRODUCTS[0]);
 }
 
 // 🎯 TO ADD NEW PRODUCTS:

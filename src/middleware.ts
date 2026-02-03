@@ -1,10 +1,35 @@
 // Simple admin authentication middleware
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { BETA_MODE } from '@/config/beta';
 
 export function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+
+  // Beta mode: Restrict access to specific pages only
+  if (BETA_MODE) {
+    const allowedPaths = [
+      '/',
+      '/store/cart',
+      '/checkout/success',
+      '/api',
+      '/_next',
+      '/favicon.ico',
+      '/sitemap.xml'
+    ];
+
+    const isAllowed = allowedPaths.some(path => 
+      pathname === path || pathname.startsWith(path)
+    );
+
+    if (!isAllowed) {
+      // Redirect to custom not-found page
+      return NextResponse.redirect(new URL('/not-found', request.url));
+    }
+  }
+
   // Check if it's an admin route
-  if (request.nextUrl.pathname.startsWith('/admin')) {
+  if (pathname.startsWith('/admin')) {
     // Check for admin session cookie
     const adminAuth = request.cookies.get('admin-auth');
     
@@ -18,5 +43,5 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: '/admin/:path*'
+  matcher: ['/((?!_next/static|_next/image|favicon.ico).*)']
 };
