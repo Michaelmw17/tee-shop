@@ -27,7 +27,7 @@ async function getProduct(id: string): Promise<ProductWithStringId | null> {
 export default function ProductPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
-  const [product, setProduct] = useState<Product | null>(null);
+  const [product, setProduct] = useState<ProductWithStringId | null>(null);
   const [category, setCategory] = useState<string>("");
   const [selectedImage, setSelectedImage] = useState(0);
   const [selectedColor, setSelectedColor] = useState<string>("");
