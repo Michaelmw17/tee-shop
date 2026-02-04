@@ -13,6 +13,15 @@ export interface Product {
   material: string;      // Material description
 }
 
+// Inventory tracking for size/color combinations
+export interface InventoryItem {
+  [key: string]: number; // e.g., "Black-M": 12, "Off-white-L": 18
+}
+
+export interface Inventory {
+  [productId: string]: InventoryItem;
+}
+
 // Helper type for cart items
 export interface CartItem {
   id: number;

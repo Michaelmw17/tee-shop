@@ -1,7 +1,7 @@
 "use client";
 import Navbar from "@/components/Navbar";
 import ProductCard from "../components/ProductCard";
-import { MutableRefObject, useEffect, useRef, useState } from "react";
+import { MutableRefObject, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { BETA_MODE, BETA_MESSAGES } from "@/config/beta";
 import { getBetaProduct, Product } from "@/lib/products";
@@ -17,11 +17,11 @@ export default function Home() {
   const workoutCarouselRef = useRef<HTMLDivElement | null>(null);
   const premiumCarouselRef = useRef<HTMLDivElement | null>(null);
 
-  const carouselRefs: Record<CategoryKey, MutableRefObject<HTMLDivElement | null>> = {
+  const carouselRefs = useMemo<Record<CategoryKey, MutableRefObject<HTMLDivElement | null>>>(() => ({
     affordable: affordableCarouselRef,
     workout: workoutCarouselRef,
     premium: premiumCarouselRef
-  };
+  }), []);
 
   const [scrollState, setScrollState] = useState<Record<CategoryKey, { atStart: boolean; atEnd: boolean }>>({
     affordable: { atStart: true, atEnd: true },
@@ -288,11 +288,20 @@ export default function Home() {
     <div className="min-h-screen bg-white">
       <Navbar />
       
+      {/* Free Shipping Banner */}
+      <div className="bg-gradient-to-r from-green-600 to-green-700 text-white py-3 px-4">
+        <div className="max-w-7xl mx-auto text-center">
+          <p className="text-sm sm:text-base font-medium">
+            🚚 <span className="font-bold">FREE Standard Shipping</span> on orders $200+ • Express Shipping available
+          </p>
+        </div>
+      </div>
+      
       {/* Beta Mode: Simplified Hero */}
       {BETA_MODE ? (
         <>
           {/* Beta Hero Section */}
-          <section className="bg-gradient-to-b from-yellow-100 to-white px-4 py-12 sm:py-16 lg:py-24">
+          <section className="bg-gradient-to-b from-yellow-100 to-white px-4 py-12 sm:py-16 lg:py-18">
             <div className="max-w-4xl mx-auto text-center">
               <div className="inline-block bg-blue-100 text-blue-800 px-4 py-2 rounded-full text-sm font-medium mb-6">
                 Beta Launch • Limited First Run

@@ -2,12 +2,12 @@
 
 import React, { useState, useEffect } from "react";
 import { useCart } from "@/components/CartContext";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, notFound } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import ColorSquare from "@/components/ColorSquare";
 import Image from "next/image";
 import { Product } from "@/types/product";
-import { BETA_MODE, BETA_ENABLED_PRODUCTS } from "@/config/beta";
+import { BETA_MODE, BETA_FEATURES } from "@/config/beta";
 
 // Extended Product type with string ID for URL params
 type ProductWithStringId = Omit<Product, 'id'> & { id: string };
@@ -40,15 +40,17 @@ export default function ProductPage() {
   const [showColorPrompt, setShowColorPrompt] = useState(false);
   const [showSizePrompt, setShowSizePrompt] = useState(false);
   const [betaChecked, setBetaChecked] = useState(false);
+  const [isAddingToCart, setIsAddingToCart] = useState(false);
+  const [stockWarning, setStockWarning] = useState<string | null>(null);
+  const [availableColors, setAvailableColors] = useState<string[]>([]);
+  const [availableSizes, setAvailableSizes] = useState<string[]>([]);
+  const [currentStock, setCurrentStock] = useState<number>(0);
 
-  // Beta mode: Block access to non-beta products immediately
+  // Beta mode: Block access to product pages if disabled
   useEffect(() => {
-    if (BETA_MODE) {
-      const productId = parseInt(id);
-      if (!BETA_ENABLED_PRODUCTS.includes(productId)) {
-        router.push('/not-found');
-        return;
-      }
+    if (BETA_MODE && !BETA_FEATURES.showProductPages) {
+      notFound();
+      return;
     }
     setBetaChecked(true);
   }, [id, router]);
@@ -66,8 +68,84 @@ export default function ProductPage() {
         setCategory(data.category);
       }
       setLoading(false);
+      
+      // Fetch available colors after product loads
+      if (data) {
+        fetch('/api/inventory/check', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            productId: Number(data.id),
+            allColors: data.colors
+          })
+        })
+        .then(res => res.json())
+        .then(result => {
+          if (result.availableColors) {
+            setAvailableColors(result.availableColors);
+          }
+        })
+        .catch(err => console.error('Failed to fetch available colors:', err));
+      }
     });
   }, [id, betaChecked]);
+
+  // Update available sizes and stock warning when color or size changes
+  useEffect(() => {
+    if (!product) return;
+    
+    if (selectedColor) {
+      // Fetch available sizes for selected color
+      fetch('/api/inventory/check', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          productId: Number(product.id),
+          color: selectedColor,
+          allSizes: product.sizes
+        })
+      })
+      .then(res => res.json())
+      .then(result => {
+        if (result.availableSizes) {
+          setAvailableSizes(result.availableSizes);
+        }
+      })
+      .catch(err => console.error('Failed to fetch available sizes:', err));
+    } else {
+      setAvailableSizes(product.sizes);
+    }
+    
+    if (selectedColor && selectedSize) {
+      // Fetch stock warning
+      fetch('/api/inventory/check', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          productId: Number(product.id),
+          color: selectedColor,
+          size: selectedSize
+        })
+      })
+      .then(res => res.json())
+      .then(result => {
+        setStockWarning(result.warning || null);
+        setCurrentStock(result.stock || 0);
+        
+        console.log('📊 Stock fetched:', { stock: result.stock, warning: result.warning, currentStock: result.stock });
+        
+        // Reset quantity if it exceeds available stock
+        if (quantity > (result.stock || 0)) {
+          console.log('⚠️ Quantity exceeds new stock, resetting:', { quantity, newStock: result.stock });
+          setQuantity(Math.min(quantity, result.stock || 1));
+        }
+      })
+      .catch(err => console.error('Failed to fetch stock warning:', err));
+    } else {
+      setStockWarning(null);
+      setCurrentStock(0);
+    }
+  }, [product, selectedColor, selectedSize, quantity]);
 
   // Loader spinner component
   const Loader = () => (
@@ -152,29 +230,37 @@ export default function ProductPage() {
                   !selectedColor && showColorPrompt ? 'text-red-600' : ''
                 }`}>Color: {!selectedColor && showColorPrompt && <span className="text-red-600">*</span>}</span>
                 <div className="flex gap-2">
-                  {product.colors.map((color) => (
-                    <div
-                      key={color}
-                      className={`transform transition-transform hover:scale-125 ${
-                        !selectedColor && showColorPrompt 
-                          ? 'wiggle-on-hover' 
-                          : ''
-                      }`}
-                    >
-                      <ColorSquare
-                        color={color}
-                        selected={selectedColor === color}
-                        onClick={() => {
-                          if (selectedColor === color) {
-                            setSelectedColor(""); // Deselect if already selected
-                          } else {
-                            setSelectedColor(color); // Select new color
-                          }
-                          setShowColorPrompt(false);
-                        }}
-                      />
-                    </div>
-                  ))}
+                  {product.colors.map((color) => {
+                    const isAvailable = availableColors.includes(color);
+                    return (
+                      <div
+                        key={color}
+                        className={`transform transition-transform ${
+                          isAvailable ? 'hover:scale-125' : 'opacity-40 cursor-not-allowed'
+                        } ${
+                          !selectedColor && showColorPrompt && isAvailable
+                            ? 'wiggle-on-hover' 
+                            : ''
+                        }`}
+                        title={isAvailable ? color : `${color} - SOLD OUT`}
+                      >
+                        <ColorSquare
+                          color={color}
+                          selected={selectedColor === color}
+                          onClick={() => {
+                            if (!isAvailable) return;
+                            if (selectedColor === color) {
+                              setSelectedColor(""); // Deselect if already selected
+                            } else {
+                              setSelectedColor(color); // Select new color
+                              setSelectedSize(""); // Reset size when color changes
+                            }
+                            setShowColorPrompt(false);
+                          }}
+                        />
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
               {/* Size dropdown */}
@@ -198,9 +284,19 @@ export default function ProductPage() {
                     }}
                   >
                     <option value="" className="text-gray-400 text-center">Select size</option>
-                    {product.sizes.map(size => (
-                      <option key={size} value={size} className="text-gray-700 text-center">{size}</option>
-                    ))}
+                    {product.sizes.map(size => {
+                      const isAvailable = availableSizes.includes(size);
+                      return (
+                        <option 
+                          key={size} 
+                          value={size} 
+                          disabled={!isAvailable}
+                          className={`text-center ${isAvailable ? 'text-gray-700' : 'text-gray-400'}`}
+                        >
+                          {size} {!isAvailable ? '(Sold Out)' : ''}
+                        </option>
+                      );
+                    })}
                   </select>
                   <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3 text-gray-700">
                     <svg className="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
@@ -209,6 +305,22 @@ export default function ProductPage() {
                   </div>
                 </div>
               </div>
+              
+              {/* Stock Warning */}
+              {selectedColor && selectedSize && currentStock > 0 && (
+                <div className="text-center font-semibold py-2 px-4 rounded-lg bg-blue-50 text-blue-700 border border-blue-200">
+                  ✓ {currentStock} available
+                </div>
+              )}
+              {stockWarning && (
+                <div className={`text-center font-semibold py-2 px-4 rounded-lg ${
+                  stockWarning === 'SOLD OUT' 
+                    ? 'bg-red-100 text-red-700 border border-red-300' 
+                    : 'bg-yellow-100 text-yellow-800 border border-yellow-300'
+                }`}>
+                  {stockWarning}
+                </div>
+              )}
               {/* Quantity */}
               <div className="flex items-center gap-2">
                 <label htmlFor="quantity" className="font-semibold w-20">Quantity:</label>
@@ -217,20 +329,52 @@ export default function ProductPage() {
                     id="quantity"
                     type="number"
                     min={1}
-                    max={99}
+                    max={selectedColor && selectedSize ? currentStock : 99}
                     value={quantity}
-                    onChange={e => setQuantity(Math.max(1, Number(e.target.value)))}
-                    className="w-full px-4 py-2 rounded-lg border-2 border-gray-300 bg-white text-gray-700 text-base shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all text-center hover:border-blue-400"
+                    onChange={e => {
+                      const val = Number(e.target.value);
+                      const maxStock = selectedColor && selectedSize ? currentStock : 99;
+                      
+                      console.log('📝 Quantity onChange:', { val, maxStock, currentStock, selectedColor, selectedSize });
+                      
+                      if (val > maxStock && selectedColor && selectedSize) {
+                        // Auto-correct and notify
+                        console.log('🚫 Exceeds max! Correcting to:', maxStock);
+                        setQuantity(maxStock);
+                        alert(`🙏 Thank you for your interest!\n\nMaximum available: ${maxStock} items\n\nYour quantity has been adjusted. If our beta launch goes well, we'll have more stock and colors available soon!`);
+                      } else {
+                        const newQty = Math.max(1, Math.min(val, maxStock));
+                        console.log('✅ Setting quantity to:', newQty);
+                        setQuantity(newQty);
+                      }
+                    }}
+                    onBlur={e => {
+                      const val = Number(e.target.value);
+                      const maxStock = selectedColor && selectedSize ? currentStock : 99;
+                      if (val > maxStock && selectedColor && selectedSize) {
+                        setQuantity(maxStock);
+                      }
+                    }}
+                    disabled={!selectedColor || !selectedSize || currentStock === 0}
+                    className="w-full px-4 py-2 rounded-lg border-2 border-gray-300 bg-white text-gray-700 text-base shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all text-center hover:border-blue-400 disabled:opacity-50 disabled:cursor-not-allowed"
+                    placeholder={selectedColor && selectedSize ? `Max: ${currentStock}` : "Select color & size"}
                   />
                 </div>
               </div>
               {/* Add to Cart */}
               <button
                 type="button"
+                disabled={isAddingToCart || !selectedSize || !selectedColor || stockWarning === 'SOLD OUT' || currentStock === 0}
                 className={`w-full bg-blue-600 text-white py-2 px-4 rounded transition-colors text-xs sm:text-sm mb-2 font-medium ${
-                  !selectedSize || !selectedColor ? "opacity-50 cursor-not-allowed" : "hover:bg-blue-700"
+                  !selectedSize || !selectedColor || isAddingToCart || stockWarning === 'SOLD OUT' || currentStock === 0 ? "opacity-50 cursor-not-allowed" : "hover:bg-blue-700"
                 }`}
-                title={!selectedColor ? "Please select a color" : !selectedSize ? "Please select a size" : "Add to cart"}
+                title={
+                  currentStock === 0 && selectedColor && selectedSize ? "Out of stock" :
+                  stockWarning === 'SOLD OUT' ? "This item is sold out" :
+                  !selectedColor ? "Please select a color" : 
+                  !selectedSize ? "Please select a size" : 
+                  "Add to cart"
+                }
                 onMouseEnter={() => {
                   if (!selectedColor) {
                     setShowColorPrompt(true);
@@ -243,10 +387,28 @@ export default function ProductPage() {
                   setShowColorPrompt(false);
                   setShowSizePrompt(false);
                 }}
-                onClick={() => {
-                  if (!selectedColor || !selectedSize) {
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  
+                  console.log('🛒 Add to Cart clicked:', { selectedColor, selectedSize, quantity, currentStock, stockWarning });
+                  
+                  if (!selectedColor || !selectedSize || isAddingToCart || stockWarning === 'SOLD OUT' || currentStock === 0) {
+                    console.log('❌ Cannot add - validation failed');
                     return;
                   }
+                  
+                  // Double-check quantity against available stock before adding
+                  if (quantity > currentStock) {
+                    console.log('❌ Quantity exceeds stock:', { quantity, currentStock });
+                    alert(`🙏 Thank you for your interest!\n\nMaximum available: ${currentStock} items\n\nYour quantity has been adjusted. If our beta launch goes well, we'll have more stock and colors available soon!`);
+                    setQuantity(currentStock);
+                    return;
+                  }
+                  
+                  console.log('✅ Validation passed, adding to cart:', { quantity, currentStock });
+                  
+                  setIsAddingToCart(true);
                   addToCart({
                     id: Number(product.id),
                     name: product.name,
@@ -257,12 +419,20 @@ export default function ProductPage() {
                     qty: quantity
                   });
                   setError("");
+                  setQuantity(1); // Reset quantity after adding to cart
+                  
+                  // Re-enable button after a short delay
+                  setTimeout(() => setIsAddingToCart(false), 500);
                 }}
               >
-                {!selectedColor
+                {stockWarning === 'SOLD OUT'
+                  ? "SOLD OUT"
+                  : !selectedColor
                   ? "Select a color" 
                   : !selectedSize 
                   ? "Select a size" 
+                  : isAddingToCart
+                  ? "Adding..."
                   : "Add to Cart"}
               </button>
               {error && <div className="text-red-600 text-sm mt-1">{error}</div>}

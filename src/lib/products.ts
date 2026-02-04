@@ -87,8 +87,8 @@ const PRODUCTS: Product[] = [
     description: "100% cotton, responsibly sourced, finished locally. Regular premium fit, 240-260 GSM weight for exceptional comfort and durability.",
     category: "premium",
     images: ["https://placehold.co/400x400?text=Premium+Cotton+Tee"],
-    sizes: ["S", "M", "L", "XL"],
-    colors: ["Black", "Off-White"],
+    sizes: ["M", "L", "XL"],
+    colors: ["Black", "Off-white"],
     material: "100% Cotton (240-260 GSM) • Responsibly Sourced • Locally Finished"
   },
   {

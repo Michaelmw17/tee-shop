@@ -27,16 +27,22 @@ export default function ProductCard({
   const [error, setError] = useState("");
   const [showColorPrompt, setShowColorPrompt] = useState(false);
   const [showSizePrompt, setShowSizePrompt] = useState(false);
+  const [justAdded, setJustAdded] = useState(false);
+  const [stockWarning, setStockWarning] = useState<string | null>(null);
 
   // Responsive width based on size variant
   const cardWidthClasses = size === "large" 
-    ? "w-full max-w-[360px] sm:max-w-[380px] md:max-w-[400px]"
-    : "w-[220px] sm:w-[260px] lg:w-[300px]";
+    ? "w-full max-w-[360px] sm:max-w-[380px] md:max-w-[600px] lg:max-w-[700px]"
+    : "w-[220px] sm:w-[260px] md:w-[500px] lg:w-[550px]";
   
-  // Image height based on size variant
+  // Image dimensions based on size variant
   const imageHeightClasses = size === "large"
-    ? "h-56 sm:h-64 md:h-72"
-    : "h-48 sm:h-56 lg:h-64";
+    ? "h-56 sm:h-64 md:h-full"
+    : "h-48 sm:h-56 md:h-full";
+  
+  const imageWidthClasses = size === "large"
+    ? "md:w-[280px]"
+    : "md:w-[240px]";
   
   // Text sizing based on variant
   const titleClasses = size === "large"
@@ -83,21 +89,45 @@ export default function ProductCard({
     }
   }, [availableColors, selectedColor]);
 
+  // Fetch stock info when color and size are selected
+  useEffect(() => {
+    if (selectedColor && selectedSize) {
+      fetch('/api/inventory/check', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          productId: product.id,
+          color: formatColorLabel(selectedColor),
+          size: selectedSize
+        })
+      })
+        .then(res => res.json())
+        .then(data => {
+          setStockWarning(data.warning ?? null);
+        })
+        .catch(err => console.error('Failed to check stock:', err));
+    } else {
+      setStockWarning(null);
+    }
+  }, [selectedColor, selectedSize, product.id]);
+
   return (
-    <div className={`${cardWidthClasses} bg-gray-50 rounded-lg overflow-hidden hover:shadow-lg transition-shadow flex flex-col min-h-[560px] ${showColorPrompt || showSizePrompt ? 'button-hovered' : ''}`}>
-      <Link href={`/store/product/${product.id}`} className="block">
-        <div className={`${imageHeightClasses} bg-gradient-to-br from-blue-200 to-blue-300 flex items-center justify-center cursor-pointer`}>
+    <div className={`${cardWidthClasses} bg-gray-50 rounded-lg overflow-hidden hover:shadow-lg transition-shadow flex flex-col md:flex-row min-h-[560px] md:min-h-[400px] ${showColorPrompt || showSizePrompt ? 'button-hovered' : ''}`}>
+      <Link href={`/store/product/${product.id}`} className="block md:flex-shrink-0">
+        <div className={`${imageHeightClasses} ${imageWidthClasses} bg-gradient-to-br from-blue-200 to-blue-300 flex items-center justify-center cursor-pointer`}>
           <span className="text-3xl sm:text-4xl">
             {category === "workout" ? "🏃‍♂️" : category === "premium" ? "✨" : "👕"}
           </span>
         </div>
       </Link>
-      <div className="p-4 sm:p-6 flex-1 flex flex-col">
+      <div className="p-4 sm:p-6 flex-1 flex flex-col md:min-w-0">
         <h3 className={titleClasses}>{product.name}</h3>
         <p className={descriptionClasses}>{product.description}</p>
-        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-3 sm:mb-4">
+        <div className="mb-3 sm:mb-4">
           <p className={priceClasses}>${product.price}</p>
-          <div className="text-xs sm:text-sm text-gray-500">{product.sizes.length} sizes available</div>
+          <div className="text-xs text-gray-500 mt-1">
+            {product.sizes.length} Sizes • {availableColors.length} Colors
+          </div>
         </div>
         <div className="flex-1" />
         <div className="flex flex-col gap-3 mt-auto">
@@ -105,11 +135,11 @@ export default function ProductCard({
           <div className={`transition-all duration-300 ${
             showColorPrompt ? 'animate-shake' : ''
           }`}>
-            <div className="flex items-center justify-between mb-1.5">
+            <div className="flex items-center gap-1.5 mb-1.5">
               <label className={`text-xs font-medium transition-colors ${
                 !selectedColor && showColorPrompt ? 'text-red-600' : 'text-gray-700'
               }`}>
-                Color: {!selectedColor && showColorPrompt && <span className="text-red-600">*</span>}
+                Color:{!selectedColor && showColorPrompt && <span className="text-red-600">*</span>}
               </label>
               {selectedColor && (
                 <span className="text-xs text-gray-600">{formatColorLabel(selectedColor)}</span>
@@ -146,7 +176,6 @@ export default function ProductCard({
             </div>
           </div>
           
-          {/* Size and Quantity Row */}
           {/* Size and Quantity Row */}
           <div className="flex gap-2">
             <div className={`flex flex-1 items-center gap-1 ${!selectedSize && showSizePrompt ? 'shake-on-hover' : ''}`}>
@@ -194,13 +223,30 @@ export default function ProductCard({
                 type="number"
                 min={1}
                 max={99}
+                step={1}
                 value={quantity}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                   setQuantity(Math.max(1, Number(e.target.value)))
                 }
+                onFocus={(e: React.FocusEvent<HTMLInputElement>) => e.target.select()}
                 className="w-full px-2 py-1.5 border-2 border-gray-300 rounded-lg text-xs bg-white text-gray-700 text-center focus:border-blue-500 focus:ring-2 focus:ring-blue-400 transition-all input-number-spin-visible hover:border-blue-400"
               />
             </div>
+          </div>
+          
+          {/* Fixed height message area to prevent layout shift */}
+          <div className="h-5 flex items-center justify-center">
+            {error && <div className="text-red-600 text-xs">{error}</div>}
+            {justAdded && <div className="text-green-600 text-xs">Item added to cart!</div>}
+            {!error && !justAdded && stockWarning && (
+              <div className={`text-xs font-medium ${
+                stockWarning === 'SOLD OUT' ? 'text-red-600' :
+                stockWarning.includes('Only') ? 'text-orange-600' :
+                'text-yellow-600'
+              }`}>
+                {stockWarning}
+              </div>
+            )}
           </div>
           
           {/* Add to Cart Button with Dynamic Text */}
@@ -224,8 +270,10 @@ export default function ProductCard({
               setShowColorPrompt(false);
               setShowSizePrompt(false);
             }}
-            onClick={() => {
-              if (!selectedColor || !selectedSize) {
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              if (!selectedColor || !selectedSize || justAdded) {
                 return;
               }
               addToCart({
@@ -238,16 +286,20 @@ export default function ProductCard({
                 qty: quantity,
                 colors: availableColors.map(formatColorLabel)
               });
+              setJustAdded(true);
+              setTimeout(() => setJustAdded(false), 2000);
               setError("");
+              setQuantity(1); // Reset quantity after adding to cart
             }}
           >
             {!selectedColor
               ? "Select a color" 
               : !selectedSize 
               ? "Select a size" 
+              : justAdded
+              ? "✓ Added!"
               : "Add to Cart"}
           </button>
-          {error && <div className="text-red-600 text-xs mb-1">{error}</div>}
         </div>
       </div>
     </div>
