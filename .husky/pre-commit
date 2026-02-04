@@ -1,14 +1,31 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+echo "🔍 Running pre-commit checks..."
+
+# Run TypeScript type checking
+echo "📘 Checking TypeScript..."
+npm run type-check || {
+  echo "❌ TypeScript errors found. Fix them before committing."
+  exit 1
+}
+
+# Run lint-staged (ESLint with auto-fix on staged files)
+echo "🔧 Running ESLint..."
+npx lint-staged || {
+  echo "❌ ESLint errors found. Some may have been auto-fixed."
+  echo "💡 Review changes and stage them, then try committing again."
+  exit 1
+}
+
 # Run security audit
 echo "🔒 Running security audit..."
-npm audit --audit-level=moderate || true
+npm audit --audit-level=moderate || {
+  echo "⚠️  Security vulnerabilities found!"
+  echo "💡 Run 'npm run security:fix' to auto-fix issues, or 'npm audit' for details."
+  echo "🚨 Blocking commit due to security vulnerabilities."
+  exit 1
+}
 
-# Warn about vulnerabilities but don't block commit
-if [ $? -ne 0 ]; then
-  echo "⚠️  Security vulnerabilities found! Consider running 'npm audit fix' to fix them."
-  echo "💡 Or run 'npm run security:fix' to auto-fix issues"
-fi
+echo "✅ All pre-commit checks passed!"
 
-# Run lint-staged for file-specific checks
-npm run pre-commit
-
-echo "✅ Security check passed! Proceeding with commit..."

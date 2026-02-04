@@ -40,6 +40,7 @@ export const BETA_FEATURES = {
   
   // Store Pages
   showCategoryPages: false,      // Disable /store/category/* routes
+  showProductPages: false,       // Disable /store/product/* routes
   showStoreGrid: false,          // Hide category grid on /store
   redirectStoreToProduct: true,  // Redirect /store to beta product
   
