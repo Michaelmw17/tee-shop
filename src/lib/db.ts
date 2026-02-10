@@ -1,14 +1,29 @@
 // Database connection and schema
 import { neon } from '@neondatabase/serverless';
 
-// Initialize database connection with fetch options
-// Note: For production on Vercel, this works fine. For local Windows development,
-// you may need to set NODE_TLS_REJECT_UNAUTHORIZED=0 in your terminal
-const sql = neon(process.env.DATABASE_URL!, {
-  fetchOptions: {
-    cache: 'no-store',
+// Lazy initialization of database connection
+// This prevents the connection from being created during build time
+let sqlInstance: ReturnType<typeof neon> | null = null;
+
+const getSQL = () => {
+  if (!sqlInstance) {
+    const connectionString = process.env.DATABASE_URL;
+    if (!connectionString) {
+      throw new Error('DATABASE_URL environment variable is not set');
+    }
+    sqlInstance = neon(connectionString, {
+      fetchOptions: {
+        cache: 'no-store',
+      }
+    });
   }
-});
+  return sqlInstance;
+};
+
+// Export a SQL client that lazily initializes the connection
+export const sql = ((strings: TemplateStringsArray, ...values: unknown[]) => {
+  return getSQL()(strings, ...values);
+}) as ReturnType<typeof neon>;
 
 // Database schema and initialization
 export async function initializeDatabase() {
@@ -104,6 +119,3 @@ export async function initializeDatabase() {
     throw error;
   }
 }
-
-// Export the SQL client
-export { sql };

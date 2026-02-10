@@ -7,13 +7,38 @@ export interface Inventory {
   };
 }
 
+interface InventoryRow {
+  product_id: number;
+  color: string;
+  size: string;
+  stock: number;
+}
+
+interface ColorRow {
+  color: string;
+}
+
+interface StockRow {
+  stock: number;
+}
+
+interface ReservedRow {
+  reserved: number;
+}
+
+interface CommandResult {
+  rowCount: number;
+  rows: unknown[];
+  length?: number;
+}
+
 // Get inventory for all products (for migration/admin)
 export async function getInventory(): Promise<Inventory> {
   try {
     const rows = await sql`SELECT product_id, color, size, stock FROM inventory`;
     
     const inventory: Inventory = {};
-    for (const row of rows) {
+    for (const row of rows as InventoryRow[]) {
       const productId = row.product_id.toString();
       if (!inventory[productId]) {
         inventory[productId] = {};
@@ -40,7 +65,7 @@ export async function getStock(productId: number, color: string, size: string): 
         AND size = ${size}
     `;
     
-    return result[0]?.stock || 0;
+    return (result as StockRow[])[0]?.stock || 0;
   } catch (error) {
     console.error('Error getting stock:', error);
     return 0;
@@ -71,10 +96,10 @@ export async function cleanupExpiredReservations(): Promise<void> {
     const result = await sql`
       DELETE FROM reservations 
       WHERE expires_at < ${now}
-    `;
+    ` as unknown as CommandResult;
     
-    if (result.length > 0) {
-      console.log(`🧹 Cleaned up ${result.length} expired reservations`);
+    if (result.rowCount && result.rowCount > 0) {
+      console.log(`🧹 Cleaned up ${result.rowCount} expired reservations`);
     }
   } catch (error) {
     console.error('Error cleaning up reservations:', error);
@@ -95,7 +120,7 @@ async function getReservedQuantity(productId: number, color: string, size: strin
         AND expires_at > ${Date.now()}
     `;
     
-    return Number(result[0]?.reserved || 0);
+    return Number((result as ReservedRow[])[0]?.reserved || 0);
   } catch (error) {
     console.error('Error getting reserved quantity:', error);
     return 0;
@@ -163,9 +188,9 @@ export async function releaseReservation(sessionId: string): Promise<boolean> {
     const result = await sql`
       DELETE FROM reservations 
       WHERE session_id = ${sessionId}
-    `;
+    ` as unknown as CommandResult;
 
-    if (result.length > 0) {
+    if (result.rowCount && result.rowCount > 0) {
       console.log(`✅ Released reservation for session ${sessionId}`);
       return true;
     }
@@ -193,9 +218,9 @@ export async function updateInventory(
         AND color = ${color} 
         AND size = ${size}
         AND stock >= ${quantity}
-    `;
+    ` as unknown as CommandResult;
 
-    if (result.length > 0) {
+    if (result.rowCount && result.rowCount > 0) {
       console.log(`✅ Updated inventory: Product ${productId}, ${color}-${size}, reduced by ${quantity}`);
       return true;
     } else {
@@ -263,7 +288,7 @@ export async function getAvailableColors(productId: number, allColors: string[])
         AND stock > 0
     `;
 
-    const availableColors = result.map(row => row.color);
+    const availableColors = (result as ColorRow[]).map((row) => row.color);
     return allColors.filter(color => availableColors.includes(color));
   } catch (error) {
     console.error('Error getting available colors:', error);
