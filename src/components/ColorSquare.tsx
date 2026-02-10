@@ -24,9 +24,8 @@ export default function ColorSquare({ color, selected, onClick, className }: Col
       aria-label={canonical ? canonical.charAt(0).toUpperCase() + canonical.slice(1) : color}
       title={canonical ? canonical.charAt(0).toUpperCase() + canonical.slice(1) : color}
       onClick={onClick}
-        className={`relative w-6 h-6 rounded border flex items-center justify-center transition-all duration-150 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400
-          ${selected ? "border-green-500 ring-2 ring-green-300" : "border-gray-300"}
-          ${canonical === "white" ? "border-gray-400" : ""}
+        className={`relative w-6 h-6 rounded border-2 flex items-center justify-center transition-all duration-150 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400
+          ${selected ? "border-green-500 ring-2 ring-green-300" : "border-gray-400"}
           ${className || ""}`}
       style={{ backgroundColor: bgColor }}
     >

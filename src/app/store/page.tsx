@@ -1,7 +1,80 @@
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
 import Navbar from "@/components/Navbar";
+import ProductCard from "@/components/ProductCard";
+import { BETA_MODE, BETA_FEATURES, BETA_MESSAGES } from "@/config/beta";
+import { getBetaProduct } from "@/lib/products";
 
 export default function StorePage() {
+  // Beta mode: Redirect to product or show single product
+  if (BETA_MODE && BETA_FEATURES.redirectStoreToProduct) {
+    const betaProduct = getBetaProduct();
+    if (betaProduct) {
+      redirect(`/store/product/${betaProduct.id}`);
+    }
+  }
+
+  // Beta mode: Show single product focus
+  if (BETA_MODE && !BETA_FEATURES.showStoreGrid) {
+    const betaProduct = getBetaProduct();
+    
+    if (!betaProduct) {
+      return (
+        <div className="min-h-screen bg-white">
+          <Navbar />
+          <div className="max-w-7xl mx-auto px-4 py-16 text-center">
+            <h1 className="text-3xl font-serif text-gray-800 mb-4">Coming Soon</h1>
+            <p className="text-gray-600">We&apos;re preparing something special. Check back soon!</p>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="min-h-screen bg-white">
+        <Navbar />
+
+        <div className="max-w-4xl mx-auto px-4 py-8 sm:py-12">
+          {/* Beta Launch Header */}
+          <div className="text-center mb-8 sm:mb-12">
+            <div className="inline-block bg-blue-100 text-blue-800 px-4 py-2 rounded-full text-sm font-medium mb-4">
+              Beta Launch
+            </div>
+            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-serif text-gray-800 mb-3">
+              {BETA_MESSAGES.storeTitle}
+            </h1>
+            <p className="text-lg text-gray-600 mb-2">
+              {BETA_MESSAGES.storeSubtitle}
+            </p>
+            {BETA_FEATURES.showComingSoon && (
+              <p className="text-sm text-gray-500 italic">
+                {BETA_MESSAGES.comingSoon}
+              </p>
+            )}
+          </div>
+
+          {/* Beta Product Card */}
+          <div className="max-w-md mx-auto">
+            <ProductCard product={betaProduct} category={betaProduct.category} />
+          </div>
+
+          {/* Additional Info */}
+          <div className="mt-12 text-center">
+            <div className="bg-gray-50 p-6 rounded-lg max-w-2xl mx-auto">
+              <h3 className="text-xl font-semibold text-gray-800 mb-3">Why Beta?</h3>
+              <p className="text-gray-600 text-sm sm:text-base">
+                This is our first production run. We&apos;re starting small to ensure quality and 
+                gather feedback from early supporters. Your purchase helps us perfect the product 
+                before we expand the line.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Full catalog mode (when beta is disabled)
   return (
     <div className="min-h-screen bg-white">
       <Navbar />

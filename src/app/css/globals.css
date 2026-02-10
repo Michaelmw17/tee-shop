@@ -5,6 +5,16 @@
   --foreground: #ffffff;
 }
 
+/* Fix for anchor links being hidden behind sticky navbar */
+html {
+  scroll-padding-top: 0; /* 64px - navbar height */
+}
+
+/* Additional offset for nested anchors without top padding */
+#learn-more {
+  scroll-margin-top: 6rem; /* Extra offset for nested element */
+}
+
 @media (prefers-color-scheme: dark) {
   :root {
     --background: #ffffff;
@@ -31,4 +41,26 @@ body {
 }
 .input-number-spin-visible {
   appearance: number-input;
+}
+
+/* Trigger animations when button is hovered and selections are missing */
+.button-hovered .shake-on-hover {
+  animation: shake 0.5s ease-in-out;
+}
+
+.button-hovered .wiggle-on-hover {
+  animation: wiggle 0.5s ease-in-out;
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  10%, 30%, 50%, 70%, 90% { transform: translateX(-4px); }
+  20%, 40%, 60%, 80% { transform: translateX(4px); }
+}
+
+@keyframes wiggle {
+  0%, 100% { transform: rotate(0deg) scale(1); }
+  25% { transform: rotate(-8deg) scale(1.05); }
+  50% { transform: rotate(8deg) scale(1.05); }
+  75% { transform: rotate(-8deg) scale(1.05); }
 }
