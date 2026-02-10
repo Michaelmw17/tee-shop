@@ -1,5 +1,6 @@
 export const COLOR_SWATCH_MAP: Record<string, string> = {
   white: "#ffffff",
+  "off-white": "#faf9f6",
   black: "#222222",
   bone: "#e3dac9",
   cream: "#f5f5dc",
@@ -10,6 +11,7 @@ export const COLOR_SWATCH_MAP: Record<string, string> = {
 
 export const ORDERED_COLOR_KEYS = Object.freeze([
   "white",
+  "off-white",
   "black",
   "bone",
   "cream",

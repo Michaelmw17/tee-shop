@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
+import { validateCartStock, reserveStock } from '@/lib/inventory-db';
+import { logInvalidInput, logCheckoutFailure } from '@/lib/security';
 
 // Initialize Stripe only if the secret key is available
 const stripe = process.env.STRIPE_SECRET_KEY 
@@ -43,7 +45,36 @@ export async function POST(request: NextRequest) {
         console.error('❌ Invalid item structure:', item);
         return NextResponse.json({ error: 'Invalid item data' }, { status: 400 });
       }
+      
+      // Security: Validate numeric values
+      if (typeof item.price !== 'number' || item.price <= 0 || item.price > 10000) {
+        console.error('❌ Invalid price:', item.price);        logInvalidInput(`Invalid price: ${item.price} for product ${item.id}`);        return NextResponse.json({ error: 'Invalid price' }, { status: 400 });
+      }
+      
+      if (typeof item.qty !== 'number' || item.qty < 1 || item.qty > 999 || !Number.isInteger(item.qty)) {
+        console.error('❌ Invalid quantity:', item.qty);        logInvalidInput(`Invalid quantity: ${item.qty} for product ${item.id}`);        return NextResponse.json({ error: 'Invalid quantity' }, { status: 400 });
+      }
+      
+      // Security: Validate product ID
+      if (typeof item.id !== 'number' || item.id < 1 || !Number.isInteger(item.id)) {
+        console.error('❌ Invalid product ID:', item.id);
+        return NextResponse.json({ error: 'Invalid product ID' }, { status: 400 });
+      }
     }
+
+    // ✅ VALIDATE STOCK AVAILABILITY (considering existing reservations)
+    console.log('🔍 Checking inventory availability...');
+    const stockCheck = await validateCartStock(items);
+    
+    if (!stockCheck.valid) {
+      console.error('❌ Insufficient stock:', stockCheck.errors);
+      return NextResponse.json({ 
+        error: 'Insufficient stock',
+        details: stockCheck.errors 
+      }, { status: 400 });
+    }
+    
+    console.log('✅ All items in stock');
 
     // Convert cart items to Stripe line items
     const lineItems = items.map((item: {
@@ -62,6 +93,7 @@ export async function POST(request: NextRequest) {
           description: `Size: ${item.size}, Color: ${item.color}`,
           images: [item.image],
           metadata: {
+            productId: item.id.toString(),
             size: item.size,
             color: item.color,
           },
@@ -73,6 +105,60 @@ export async function POST(request: NextRequest) {
 
     console.log('💰 Creating Stripe session with line items:', lineItems);
 
+    // Calculate cart total for shipping logic
+    const cartTotal = items.reduce((sum: number, item: { price: number; qty: number }) => sum + (item.price * item.qty), 0);
+    const freeShippingThreshold = 200;
+    const isFreeShipping = cartTotal >= freeShippingThreshold;
+    
+    console.log(`📊 Cart total: $${cartTotal.toFixed(2)}, Free shipping: ${isFreeShipping}`);
+
+    // Calculate expiration time (30 minutes from now - Stripe minimum)
+    const expiresAt = Math.floor(Date.now() / 1000) + (30 * 60);
+
+    // Build shipping options based on cart total
+    const shippingOptions = [
+      {
+        shipping_rate_data: {
+          type: 'fixed_amount' as const,
+          fixed_amount: {
+            amount: isFreeShipping ? 0 : 1000, // FREE if over $200, otherwise $10.00 AUD
+            currency: 'aud',
+          },
+          display_name: isFreeShipping ? 'FREE Standard Shipping' : 'Standard Shipping',
+          delivery_estimate: {
+            minimum: {
+              unit: 'business_day' as const,
+              value: 5,
+            },
+            maximum: {
+              unit: 'business_day' as const,
+              value: 10,
+            },
+          },
+        },
+      },
+      {
+        shipping_rate_data: {
+          type: 'fixed_amount' as const,
+          fixed_amount: {
+            amount: 2500, // $25.00 AUD express shipping (always paid)
+            currency: 'aud',
+          },
+          display_name: 'Express Shipping',
+          delivery_estimate: {
+            minimum: {
+              unit: 'business_day' as const,
+              value: 1,
+            },
+            maximum: {
+              unit: 'business_day' as const,
+              value: 3,
+            },
+          },
+        },
+      },
+    ];
+
     // Create Stripe checkout session
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
@@ -80,51 +166,11 @@ export async function POST(request: NextRequest) {
       mode: 'payment',
       success_url: `${process.env.NEXT_PUBLIC_APP_URL}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/store/cart`,
+      expires_at: expiresAt,
       shipping_address_collection: {
         allowed_countries: ['AU'], // Australia only
       },
-      shipping_options: [
-        {
-          shipping_rate_data: {
-            type: 'fixed_amount',
-            fixed_amount: {
-              amount: 1000, // $10.00 AUD shipping
-              currency: 'aud',
-            },
-            display_name: 'Standard Shipping',
-            delivery_estimate: {
-              minimum: {
-                unit: 'business_day',
-                value: 5,
-              },
-              maximum: {
-                unit: 'business_day',
-                value: 10,
-              },
-            },
-          },
-        },
-        {
-          shipping_rate_data: {
-            type: 'fixed_amount',
-            fixed_amount: {
-              amount: 2500, // $25.00 AUD express shipping
-              currency: 'aud',
-            },
-            display_name: 'Express Shipping',
-            delivery_estimate: {
-              minimum: {
-                unit: 'business_day',
-                value: 1,
-              },
-              maximum: {
-                unit: 'business_day',
-                value: 3,
-              },
-            },
-          },
-        },
-      ],
+      shipping_options: shippingOptions,
       // Store metadata for order tracking
       metadata: {
         order_source: 'yogi_tees_website',
@@ -134,6 +180,22 @@ export async function POST(request: NextRequest) {
 
     console.log('✅ Stripe session created:', session.id);
     
+    // 🔒 RESERVE INVENTORY for this session (30 minutes)
+    const reservation = await reserveStock(session.id, items);
+    
+    if (!reservation.success) {
+      // This shouldn't happen since we just validated, but handle it
+      console.error('❌ Failed to reserve stock:', reservation.errors);
+      // Cancel the Stripe session
+      await stripe.checkout.sessions.expire(session.id);
+      return NextResponse.json({ 
+        error: 'Failed to reserve stock',
+        details: reservation.errors 
+      }, { status: 400 });
+    }
+    
+    console.log('🔒 Stock reserved for 5 minutes');
+    
     return NextResponse.json({ 
       sessionId: session.id,
       url: session.url 
@@ -141,6 +203,7 @@ export async function POST(request: NextRequest) {
     
   } catch (error: unknown) {
     console.error('Stripe checkout error:', error);
+    logCheckoutFailure(`Checkout failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     
     // Provide more detailed error information in development
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
