@@ -7,11 +7,29 @@ import { sql } from '@/lib/db';
 // Force dynamic rendering - don't try to pre-render this API route
 export const dynamic = 'force-dynamic';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2025-10-29.clover',
-});
+// Lazy initialization to prevent build-time errors
+let stripeInstance: Stripe | null = null;
 
-const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
+function getStripe(): Stripe {
+  if (!stripeInstance) {
+    const secretKey = process.env.STRIPE_SECRET_KEY;
+    if (!secretKey) {
+      throw new Error('STRIPE_SECRET_KEY environment variable is not set');
+    }
+    stripeInstance = new Stripe(secretKey, {
+      apiVersion: '2025-10-29.clover',
+    });
+  }
+  return stripeInstance;
+}
+
+function getWebhookSecret(): string {
+  const secret = process.env.STRIPE_WEBHOOK_SECRET;
+  if (!secret) {
+    throw new Error('STRIPE_WEBHOOK_SECRET environment variable is not set');
+  }
+  return secret;
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -27,6 +45,8 @@ export async function POST(req: NextRequest) {
     let event: Stripe.Event;
     
     try {
+      const stripe = getStripe();
+      const webhookSecret = getWebhookSecret();
       event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
     } catch (err) {
       console.error('❌ Webhook signature verification failed:', err);      logWebhookFailure(`Signature verification failed: ${err instanceof Error ? err.message : 'Unknown'}`);      return NextResponse.json({ error: 'Invalid signature' }, { status: 400 });
@@ -56,6 +76,7 @@ export async function POST(req: NextRequest) {
       await releaseReservation(session.id);
       
       // Retrieve line items from the session
+      const stripe = getStripe();
       const lineItems = await stripe.checkout.sessions.listLineItems(session.id, {
         expand: ['data.price.product'],
       });
