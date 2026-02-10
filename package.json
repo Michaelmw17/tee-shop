@@ -14,7 +14,7 @@
     "security:audit": "npm audit",
     "security:fix": "npm audit fix",
     "security:check": "npm audit --audit-level=high && npm run build",
-    "security:pre-commit": "npm audit --audit-level=moderate && npm run lint",
+    "security:pre-commit": "npm run type-check && npm audit --audit-level=moderate && npm run lint",
     "security:scan-files": "grep -r -i -n 'password\\|secret\\|key.*=\\|token\\|api[_-]*key' --exclude-dir=node_modules --exclude-dir=.git . || echo 'No sensitive data found'",
     "prepare": "husky",
     "pre-commit": "lint-staged",
