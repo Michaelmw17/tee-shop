@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAvailableStock, getLowStockWarning, getAvailableColors, getAvailableSizes } from '@/lib/inventory-db';
 
+// Force dynamic rendering - don't try to pre-render this API route
+export const dynamic = 'force-dynamic';
+
 export async function POST(request: NextRequest) {
   try {
     const { productId, color, size, allColors, allSizes } = await request.json();

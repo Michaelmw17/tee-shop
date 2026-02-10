@@ -2,14 +2,16 @@ import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { updateInventory, releaseReservation } from '@/lib/inventory-db';
 import { logWebhookFailure } from '@/lib/security';
-import { neon } from '@neondatabase/serverless';
+import { sql } from '@/lib/db';
+
+// Force dynamic rendering - don't try to pre-render this API route
+export const dynamic = 'force-dynamic';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2025-10-29.clover',
 });
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
-const sql = neon(process.env.DATABASE_URL!);
 
 export async function POST(req: NextRequest) {
   try {
