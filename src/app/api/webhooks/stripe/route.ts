@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
-import { updateInventory, releaseReservation } from '@/lib/inventory-db';
+import { releaseReservation } from '@/lib/inventory-db';
 import { logWebhookFailure } from '@/lib/security';
 import { sql } from '@/lib/db';
 
@@ -49,7 +49,9 @@ export async function POST(req: NextRequest) {
       const webhookSecret = getWebhookSecret();
       event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
     } catch (err) {
-      console.error('❌ Webhook signature verification failed:', err);      logWebhookFailure(`Signature verification failed: ${err instanceof Error ? err.message : 'Unknown'}`);      return NextResponse.json({ error: 'Invalid signature' }, { status: 400 });
+      console.error('Webhook signature verification failed:', err);
+      logWebhookFailure(`Signature verification failed: ${err instanceof Error ? err.message : 'Unknown'}`);
+      return NextResponse.json({ error: 'Invalid signature' }, { status: 400 });
     }
 
     console.log('🎣 Webhook received:', event.type);
@@ -69,54 +71,43 @@ export async function POST(req: NextRequest) {
     // Handle successful payment
     if (event.type === 'checkout.session.completed') {
       const session = event.data.object as Stripe.Checkout.Session;
-      
-      console.log('✅ Payment completed:', session.id);
-      
-      // Release the reservation (we'll deduct from actual inventory instead)
-      await releaseReservation(session.id);
-      
+
+      // Only fulfil paid sessions
+      if (session.payment_status !== 'paid') {
+        console.warn('Ignoring unpaid completed session:', session.id);
+        return NextResponse.json({ received: true });
+      }
+
       // Retrieve line items from the session
       const stripe = getStripe();
       const lineItems = await stripe.checkout.sessions.listLineItems(session.id, {
         expand: ['data.price.product'],
       });
 
-      console.log('📦 Processing line items:', lineItems.data.length);
-
-      // Update inventory and log purchases for each item
       for (const item of lineItems.data) {
         const product = item.price?.product as Stripe.Product;
         const metadata = product.metadata;
         
         if (metadata && metadata.productId && metadata.size && metadata.color) {
-          const productId = parseInt(metadata.productId);
+          const productId = parseInt(metadata.productId, 10);
           const size = metadata.size;
           const color = metadata.color;
           const quantity = item.quantity || 1;
           const unitPrice = (item.price?.unit_amount || 0) / 100; // Convert cents to dollars
           const totalPrice = unitPrice * quantity;
 
-          console.log(`📉 Reducing inventory: Product ${productId}, ${color}-${size}, Qty: ${quantity}`);
-
-          const success = await updateInventory(productId, color, size, quantity);
-          
-          if (!success) {
-            console.error(`❌ Failed to update inventory for product ${productId}`);
-            // Log the error but don't fail the webhook
-            // The payment was successful, we'll handle inventory issues manually
-          }
-
-          // Log the purchase to database
-          try {
-            await sql`
+          // Idempotent: the purchase row is unique per session line, and stock is only
+          // reduced when that row is newly inserted, so a replayed webhook changes nothing.
+          await sql`
+            WITH logged AS (
               INSERT INTO purchases (
-                session_id, product_id, color, size, quantity, 
+                session_id, product_id, color, size, quantity,
                 unit_price, total_price, customer_email, customer_name, stripe_payment_id
               ) VALUES (
-                ${session.id}, 
-                ${productId}, 
-                ${color}, 
-                ${size}, 
+                ${session.id},
+                ${productId},
+                ${color},
+                ${size},
                 ${quantity},
                 ${unitPrice},
                 ${totalPrice},
@@ -124,19 +115,23 @@ export async function POST(req: NextRequest) {
                 ${session.customer_details?.name || null},
                 ${session.payment_intent as string || null}
               )
-              ON CONFLICT (session_id) DO NOTHING
-            `;
-            console.log(`💾 Purchase logged: Product ${productId}, ${color}-${size}, Qty: ${quantity}, Price: $${totalPrice}`);
-          } catch (err) {
-            console.error('❌ Failed to log purchase:', err);
-            // Don't fail the webhook - inventory was already updated
-          }
+              ON CONFLICT (session_id, product_id, color, size) DO NOTHING
+              RETURNING product_id, color, size, quantity
+            )
+            UPDATE inventory
+            SET stock = GREATEST(inventory.stock - logged.quantity, 0), updated_at = NOW()
+            FROM logged
+            WHERE inventory.product_id = logged.product_id
+              AND inventory.color = logged.color
+              AND inventory.size = logged.size
+          `;
         } else {
-          console.warn('⚠️ Line item missing metadata:', item.id);
+          console.warn('Line item missing metadata:', item.id);
         }
       }
 
-      console.log('✅ Inventory updated successfully');
+      // Release the reservation now that stock has been deducted
+      await releaseReservation(session.id);
     }
 
     return NextResponse.json({ received: true });
