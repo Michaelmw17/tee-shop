@@ -11,6 +11,7 @@
     "type-check": "tsc --noEmit",
     "db:migrate": "tsx scripts/migrate-to-db.ts",
     "db:init": "tsx scripts/migrate-to-db.ts",
+    "db:harden": "tsx scripts/harden-schema.ts",
     "security:audit": "npm audit",
     "security:fix": "npm audit fix",
     "security:check": "npm audit --audit-level=high && npm run build",

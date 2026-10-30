@@ -8,8 +8,6 @@ export async function POST(request: NextRequest) {
   try {
     const { productId, color, size, allColors, allSizes } = await request.json();
 
-    console.log('🔍 Inventory Check Request:', { productId, color, size, allColors, allSizes });
-
     if (!productId) {
       return NextResponse.json({ error: 'Product ID required' }, { status: 400 });
     }
@@ -28,6 +26,20 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid size' }, { status: 400 });
     }
 
+    // Security: cap list inputs so one request cannot fan out into many queries
+    const isShortStringList = (list: unknown, maxItemLength: number) =>
+      Array.isArray(list) &&
+      list.length <= 20 &&
+      list.every(entry => typeof entry === 'string' && entry.length <= maxItemLength);
+
+    if (allColors && !isShortStringList(allColors, 50)) {
+      return NextResponse.json({ error: 'Invalid colors' }, { status: 400 });
+    }
+
+    if (allSizes && !isShortStringList(allSizes, 10)) {
+      return NextResponse.json({ error: 'Invalid sizes' }, { status: 400 });
+    }
+
     const response: {
       stock?: number;
       warning?: string | null;
@@ -39,7 +51,6 @@ export async function POST(request: NextRequest) {
     if (color && size) {
       response.stock = await getAvailableStock(productId, color, size);
       response.warning = await getLowStockWarning(productId, color, size);
-      console.log('📊 Stock Check Result:', { productId, color, size, stock: response.stock, warning: response.warning });
     }
 
     // Get available colors

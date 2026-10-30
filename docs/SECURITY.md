@@ -1,81 +1,63 @@
-# Security Audit Report & Fixes Applied
-## ✅ Security Issues Identified & Fixed
+# Security
 
-### 1. **JSON Parsing Vulnerability**
-- **Issue**: Unsafe `JSON.parse()` in CartContext could crash app with malformed data
-- **Fix**: Added try-catch with data validation and sanitization
-- **Impact**: Prevents crashes from corrupted localStorage data
+## Reporting a vulnerability
 
-### 2. **API Input Validation**
-- **Issue**: No input validation on API parameters
-- **Fix**: Added comprehensive input validation for product ID and category parameters
-- **Impact**: Prevents injection attacks and improves error handling
+Use GitHub's private vulnerability reporting on the repository (Security tab, Report a vulnerability), or contact the repository owner directly. Do not open a public issue for a security problem.
 
-### 3. **Security Headers Missing**
-- **Issue**: No security headers to prevent common attacks
-- **Fix**: Added comprehensive security headers including:
-  - X-Frame-Options: DENY (prevents clickjacking)
-  - X-Content-Type-Options: nosniff (prevents MIME sniffing)
-  - X-XSS-Protection: 1; mode=block (XSS protection)
-  - Referrer-Policy: strict-origin-when-cross-origin
-  - Permissions-Policy: camera=(), microphone=(), geolocation=()
-- **Impact**: Hardens app against various web attacks
+## Secrets
 
-### 4. **Console Logging in Production**
-- **Issue**: Console logs exposed in production could leak sensitive info
-- **Fix**: Wrapped console logs with NODE_ENV checks
-- **Impact**: Prevents information disclosure in production
+- Real secrets live only in `.env.local` (gitignored) and in Vercel environment variables.
+- `.gitignore` blocks every `.env*` file except `.env.local.example`, which holds placeholders only.
+- CI runs gitleaks over the full git history on every push.
+- Never set `NODE_TLS_REJECT_UNAUTHORIZED=0`. It disables certificate checking for all connections. For a corporate CA, use `NODE_EXTRA_CA_CERTS` instead.
 
-### 5. **Error Handling & Information Disclosure**
-- **Issue**: Detailed error messages could expose system info
-- **Fix**: Generic error messages for production, detailed only in development
-- **Impact**: Reduces attack surface through information disclosure
+### If a secret leaks
 
-### 6. **Enhanced .gitignore**
-- **Issue**: Insufficient file exclusions
-- **Fix**: Added comprehensive exclusions for sensitive files, logs, and OS files
-- **Impact**: Prevents accidental commit of sensitive data
+1. Rotate it immediately (Neon: reset the role password; Stripe: roll the key or webhook secret).
+2. Update `.env.local` and the Vercel environment variables.
+3. Redeploy.
+4. Review Neon and Stripe logs for unfamiliar activity.
+5. Removing the file from git is not enough, the value stays in history. Treat it as compromised.
 
-## ✅ Security Best Practices Implemented
+## What the application enforces
 
-### Input Sanitization
-- Product ID validation (integer, positive)
-- Category name validation (whitelist approach)
-- LocalStorage data validation with type checking
+| Area | Protection |
+|---|---|
+| Prices | Taken from `src/lib/products.ts` on the server. The request only supplies product id, size, color, quantity |
+| Cart validation | Ids, sizes and colors checked against the catalog. Quantity 1 to 10, up to 20 lines, 10 KB body cap |
+| Overselling | Stock check and reservation are one atomic statement under a database lock |
+| Webhook | Stripe signature verified. Only paid sessions fulfilled. Idempotent per cart line |
+| Order lookup | `/api/checkout/session` validates the session id format and returns only total, status and a masked email |
+| SQL | Parameterized queries only |
+| Errors | Generic messages to clients, details only in server logs |
+| Rate limiting | 30 requests per minute per IP on checkout and inventory (not the webhook). In memory per instance |
+| Admin paths | `/admin` returns 404. There is no admin area |
+| Headers | CSP, HSTS, X-Frame-Options DENY, nosniff, Referrer-Policy, Permissions-Policy, COOP. `X-Powered-By` removed |
+| Logging | No request bodies or customer details logged |
 
-### Error Handling
-- Comprehensive try-catch blocks in API routes
-- Graceful degradation for client-side errors
-- Development vs production error reporting
+## Known limitations
 
-### Security Headers
-- Anti-clickjacking protection
-- MIME type sniffing prevention
-- XSS protection headers
-- Content security improvements
+- Rate limiting is per server instance. Reliable limits at scale need a shared store (for example Upstash Redis).
+- CSP allows `'unsafe-inline'` scripts because Next.js needs them unless nonces are added.
+- Beta mode path rules in `src/proxy.ts` are a convenience, not access control.
 
-### Data Validation
-- Type checking for cart items
-- Array validation for localStorage data
-- Input sanitization for API parameters
+## Automation
 
-## 🔒 Additional Security Recommendations
+| Check | When |
+|---|---|
+| Pre-commit hook (`.husky/pre-commit`) | Every commit: type-check, ESLint on staged files, `npm audit --audit-level=moderate` |
+| `Security Scan` workflow | Push, pull request, daily: `npm audit`, build, type-check, gitleaks |
+| `CodeQL` workflow | Push, pull request, weekly |
+| Dependabot | Weekly npm and GitHub Actions updates |
 
-### For Production Deployment:
-1. **Content Security Policy (CSP)**: Consider adding stricter CSP headers
-2. **Rate Limiting**: Implement proper rate limiting middleware
-3. **Authentication**: Add proper authentication system if needed
-4. **HTTPS**: Ensure HTTPS in production
-5. **Dependency Scanning**: Regular `npm audit` checks
-6. **Environment Variables**: Use secure environment variable management
+GitHub Actions are pinned to commit SHAs and workflows run with read-only permissions.
 
-### Monitoring:
-- Set up error monitoring (Sentry, LogRocket)
-- Implement security event logging
-- Regular security audits
+Run everything locally with `npm run validate`. Do not bypass the pre-commit hook with `--no-verify`.
 
-## ✅ Security Status: SECURE ✅
+## Before going live
 
-All identified security vulnerabilities have been addressed. The application now follows security best practices for a Next.js e-commerce application.
-
-Last Updated: $(date)
+- [ ] Live keys only in Vercel, never in files
+- [ ] Production webhook endpoint created with `checkout.session.completed` and `checkout.session.expired`
+- [ ] `npm run db:harden` run on the production database
+- [ ] `npm audit` reports 0 vulnerabilities
+- [ ] Repository is private, or secrets confirmed rotated

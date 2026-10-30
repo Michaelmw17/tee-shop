@@ -30,14 +30,10 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# Environment files - security policy
-.env.local
-.env.production
-.env.*.local
-
-# Safe to commit (templates and development with placeholders):
-# .env.development
-# .env.local.example
+# Environment files - security policy (secrets must never be committed)
+.env
+.env.*
+!.env.local.example
 
 # vercel
 .vercel

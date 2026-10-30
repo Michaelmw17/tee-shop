@@ -2,90 +2,113 @@ import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { validateCartStock, reserveStock } from '@/lib/inventory-db';
 import { logInvalidInput, logCheckoutFailure } from '@/lib/security';
+import { getAllProducts } from '@/lib/products';
 
 // Initialize Stripe only if the secret key is available
-const stripe = process.env.STRIPE_SECRET_KEY 
+const stripe = process.env.STRIPE_SECRET_KEY
   ? new Stripe(process.env.STRIPE_SECRET_KEY, {
       apiVersion: '2025-10-29.clover',
     })
   : null;
 
+const MAX_BODY_BYTES = 10 * 1024;
+const MAX_CART_LINES = 20;
+const MAX_QTY_PER_LINE = 10;
+
+// A cart line after server-side validation. Name, price and image come from
+// the catalog, never from the request.
+interface TrustedLine {
+  id: number;
+  name: string;
+  price: number;
+  size: string;
+  color: string;
+  image: string;
+  qty: number;
+}
+
+function badRequest(message: string, status = 400) {
+  return NextResponse.json({ error: message }, { status });
+}
+
+// Rebuild the cart from the catalog so a tampered request cannot change prices
+function buildTrustedLines(items: unknown): TrustedLine[] | null {
+  if (!Array.isArray(items) || items.length === 0 || items.length > MAX_CART_LINES) {
+    return null;
+  }
+
+  const catalog = getAllProducts();
+  const lines: TrustedLine[] = [];
+  const seen = new Set<string>();
+
+  for (const raw of items) {
+    if (typeof raw !== 'object' || raw === null) return null;
+    const { id, size, color, qty } = raw as Record<string, unknown>;
+
+    if (typeof id !== 'number' || !Number.isInteger(id) || id < 1) return null;
+    if (typeof qty !== 'number' || !Number.isInteger(qty) || qty < 1 || qty > MAX_QTY_PER_LINE) return null;
+    if (typeof size !== 'string' || typeof color !== 'string') return null;
+
+    const product = catalog.find(p => p.id === id);
+    if (!product || !product.sizes.includes(size) || !product.colors.includes(color)) return null;
+
+    const key = `${id}|${color}|${size}`;
+    if (seen.has(key)) return null;
+    seen.add(key);
+
+    lines.push({
+      id: product.id,
+      name: product.name,
+      price: product.price,
+      size,
+      color,
+      image: product.images[0],
+      qty,
+    });
+  }
+
+  return lines;
+}
+
 export async function POST(request: NextRequest) {
   try {
-    console.log('🚀 Checkout API called');
-    
     // Check if Stripe is properly configured
-    if (!stripe) {
-      console.error('❌ Stripe not configured - check STRIPE_SECRET_KEY');
-      
-      // In development, provide helpful error message
-      if (process.env.NODE_ENV === 'development') {
-        return NextResponse.json({ 
-          error: 'Stripe not configured',
-          message: 'Please add your Stripe test keys to .env.local file. See SETUP_GUIDE.md for instructions.',
-          setupUrl: 'https://dashboard.stripe.com/test/apikeys'
-        }, { status: 500 });
-      }
-      
-      return NextResponse.json({ error: 'Stripe not configured' }, { status: 500 });
-    }
-    
-    const { items } = await request.json();
-    console.log('📦 Items received:', items);
-
-    // Validate items
-    if (!items || !Array.isArray(items) || items.length === 0) {
-      console.error('❌ No items provided');
-      return NextResponse.json({ error: 'Invalid items' }, { status: 400 });
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL;
+    if (!stripe || !appUrl) {
+      console.error('Checkout misconfigured: STRIPE_SECRET_KEY or NEXT_PUBLIC_APP_URL missing');
+      return badRequest('Checkout is temporarily unavailable', 500);
     }
 
-    // Validate each item has required fields
-    for (const item of items) {
-      if (!item.id || !item.name || !item.price || !item.qty) {
-        console.error('❌ Invalid item structure:', item);
-        return NextResponse.json({ error: 'Invalid item data' }, { status: 400 });
-      }
-      
-      // Security: Validate numeric values
-      if (typeof item.price !== 'number' || item.price <= 0 || item.price > 10000) {
-        console.error('❌ Invalid price:', item.price);        logInvalidInput(`Invalid price: ${item.price} for product ${item.id}`);        return NextResponse.json({ error: 'Invalid price' }, { status: 400 });
-      }
-      
-      if (typeof item.qty !== 'number' || item.qty < 1 || item.qty > 999 || !Number.isInteger(item.qty)) {
-        console.error('❌ Invalid quantity:', item.qty);        logInvalidInput(`Invalid quantity: ${item.qty} for product ${item.id}`);        return NextResponse.json({ error: 'Invalid quantity' }, { status: 400 });
-      }
-      
-      // Security: Validate product ID
-      if (typeof item.id !== 'number' || item.id < 1 || !Number.isInteger(item.id)) {
-        console.error('❌ Invalid product ID:', item.id);
-        return NextResponse.json({ error: 'Invalid product ID' }, { status: 400 });
-      }
+    // Security: cap the request size before parsing
+    const contentLength = Number(request.headers.get('content-length') || 0);
+    if (contentLength > MAX_BODY_BYTES) {
+      return badRequest('Request too large', 413);
     }
 
-    // ✅ VALIDATE STOCK AVAILABILITY (considering existing reservations)
-    console.log('🔍 Checking inventory availability...');
-    const stockCheck = await validateCartStock(items);
-    
+    let body: unknown;
+    try {
+      body = await request.json();
+    } catch {
+      return badRequest('Invalid request');
+    }
+
+    const lines = buildTrustedLines((body as { items?: unknown } | null)?.items);
+    if (!lines) {
+      logInvalidInput('Checkout rejected: invalid cart payload');
+      return badRequest('Invalid items');
+    }
+
+    // Validate stock availability (considering existing reservations)
+    const stockCheck = await validateCartStock(lines);
+
     if (!stockCheck.valid) {
-      console.error('❌ Insufficient stock:', stockCheck.errors);
-      return NextResponse.json({ 
+      return NextResponse.json({
         error: 'Insufficient stock',
-        details: stockCheck.errors 
+        details: stockCheck.errors
       }, { status: 400 });
     }
-    
-    console.log('✅ All items in stock');
 
-    // Convert cart items to Stripe line items
-    const lineItems = items.map((item: {
-      id: number;
-      name: string;
-      price: number;
-      size: string;
-      color: string;
-      image: string;
-      qty: number;
-    }) => ({
+    const lineItems = lines.map(item => ({
       price_data: {
         currency: 'aud',
         product_data: {
@@ -103,14 +126,10 @@ export async function POST(request: NextRequest) {
       quantity: item.qty,
     }));
 
-    console.log('💰 Creating Stripe session with line items:', lineItems);
-
     // Calculate cart total for shipping logic
-    const cartTotal = items.reduce((sum: number, item: { price: number; qty: number }) => sum + (item.price * item.qty), 0);
+    const cartTotal = lines.reduce((sum, item) => sum + (item.price * item.qty), 0);
     const freeShippingThreshold = 200;
     const isFreeShipping = cartTotal >= freeShippingThreshold;
-    
-    console.log(`📊 Cart total: $${cartTotal.toFixed(2)}, Free shipping: ${isFreeShipping}`);
 
     // Calculate expiration time (30 minutes from now - Stripe minimum)
     const expiresAt = Math.floor(Date.now() / 1000) + (30 * 60);
@@ -164,8 +183,8 @@ export async function POST(request: NextRequest) {
       payment_method_types: ['card'],
       line_items: lineItems,
       mode: 'payment',
-      success_url: `${process.env.NEXT_PUBLIC_APP_URL}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/store/cart`,
+      success_url: `${appUrl}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${appUrl}/store/cart`,
       expires_at: expiresAt,
       shipping_address_collection: {
         allowed_countries: ['AU'], // Australia only
@@ -174,46 +193,33 @@ export async function POST(request: NextRequest) {
       // Store metadata for order tracking
       metadata: {
         order_source: 'yogi_tees_website',
-        item_count: items.length.toString(),
+        item_count: lines.length.toString(),
       },
     });
 
-    console.log('✅ Stripe session created:', session.id);
-    
-    // 🔒 RESERVE INVENTORY for this session (30 minutes)
-    const reservation = await reserveStock(session.id, items);
-    
+    // Reserve inventory for this session (30 minutes)
+    const reservation = await reserveStock(session.id, lines);
+
     if (!reservation.success) {
-      // This shouldn't happen since we just validated, but handle it
-      console.error('❌ Failed to reserve stock:', reservation.errors);
-      // Cancel the Stripe session
+      // Another buyer took the stock between the check and the reserve
       await stripe.checkout.sessions.expire(session.id);
-      return NextResponse.json({ 
-        error: 'Failed to reserve stock',
-        details: reservation.errors 
+      return NextResponse.json({
+        error: 'Insufficient stock',
+        details: reservation.errors
       }, { status: 400 });
     }
-    
-    console.log('🔒 Stock reserved for 5 minutes');
-    
-    return NextResponse.json({ 
+
+    return NextResponse.json({
       sessionId: session.id,
-      url: session.url 
+      url: session.url
     });
-    
+
   } catch (error: unknown) {
     console.error('Stripe checkout error:', error);
     logCheckoutFailure(`Checkout failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    
-    // Provide more detailed error information in development
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    const isDevelopment = process.env.NODE_ENV === 'development';
-    
+
     return NextResponse.json(
-      { 
-        error: 'Failed to create checkout session',
-        ...(isDevelopment && { details: errorMessage })
-      },
+      { error: 'Failed to create checkout session' },
       { status: 500 }
     );
   }

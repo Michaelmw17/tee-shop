@@ -5,7 +5,7 @@ import * as path from 'path';
 import { neon } from '@neondatabase/serverless';
 
 // Load environment variables FIRST
-config({ path: '.env.development' });
+config({ path: '.env.local' });
 
 // Now initialize database connection
 const sql = neon(process.env.DATABASE_URL!);

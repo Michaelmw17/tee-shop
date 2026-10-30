@@ -12,22 +12,29 @@ const RATE_LIMIT = {
   max: 30, // 30 requests per minute per IP
 };
 
-// API routes that need rate limiting
+// API routes that need rate limiting.
+// The Stripe webhook is deliberately excluded: its requests are authenticated by signature,
+// and Stripe sends bursts from a small set of IPs that this limiter could block.
 const RATE_LIMITED_PATHS = [
   '/api/checkout',
-  '/api/inventory/check',
-  '/api/webhooks/stripe'
+  '/api/inventory/check'
 ];
 
+// Cap the map so a flood of distinct keys cannot exhaust memory
+const MAX_TRACKED_KEYS = 5000;
+
 function getRateLimitKey(request: NextRequest): string {
-  // Use IP address or forwarded IP from Vercel
+  // Vercel sets these headers itself, so a client cannot spoof them.
+  // x-forwarded-for is only used as a last resort because clients can send it.
+  const trusted = request.headers.get('x-vercel-forwarded-for') || request.headers.get('x-real-ip');
+  if (trusted) return trusted.split(',')[0].trim();
   const forwarded = request.headers.get('x-forwarded-for');
-  const ip = forwarded ? forwarded.split(',')[0] : 'unknown';
-  return ip;
+  return forwarded ? forwarded.split(',').pop()!.trim() : 'unknown';
 }
 
 function isRateLimited(key: string): boolean {
   const now = Date.now();
+  if (rateLimit.size > MAX_TRACKED_KEYS) pruneRateLimit();
   const record = rateLimit.get(key);
 
   if (!record || now > record.resetTime) {
@@ -47,15 +54,15 @@ function isRateLimited(key: string): boolean {
   return false;
 }
 
-// Clean up old entries periodically
-setInterval(() => {
+// Drop expired entries when the map grows (no timer, so it is safe on serverless)
+function pruneRateLimit() {
   const now = Date.now();
   for (const [key, record] of rateLimit.entries()) {
     if (now > record.resetTime) {
       rateLimit.delete(key);
     }
   }
-}, RATE_LIMIT.windowMs);
+}
 
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -93,15 +100,9 @@ export function proxy(request: NextRequest) {
     }
   }
 
-  // Check if it's an admin route
+  // There is no admin area. Block the path outright rather than trust a client-set cookie.
   if (pathname.startsWith('/admin')) {
-    // Check for admin session cookie
-    const adminAuth = request.cookies.get('admin-auth');
-    
-    if (!adminAuth || adminAuth.value !== 'authenticated') {
-      // Redirect to admin login
-      return NextResponse.redirect(new URL('/admin/login', request.url));
-    }
+    return new NextResponse(null, { status: 404 });
   }
   
   // Add security headers
