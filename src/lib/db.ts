@@ -25,6 +25,9 @@ export const sql = ((strings: TemplateStringsArray, ...values: unknown[]) => {
   return getSQL()(strings, ...values);
 }) as ReturnType<typeof neon>;
 
+// Run several statements in one transaction (sql.transaction batches them over a single HTTP request)
+export const transaction: ReturnType<typeof neon>['transaction'] = (...args) => getSQL().transaction(...args);
+
 // Database schema and initialization
 export async function initializeDatabase() {
   try {
@@ -35,7 +38,7 @@ export async function initializeDatabase() {
         product_id INTEGER NOT NULL,
         color VARCHAR(50) NOT NULL,
         size VARCHAR(10) NOT NULL,
-        stock INTEGER NOT NULL DEFAULT 0,
+        stock INTEGER NOT NULL DEFAULT 0 CHECK (stock >= 0),
         created_at TIMESTAMP DEFAULT NOW(),
         updated_at TIMESTAMP DEFAULT NOW(),
         UNIQUE(product_id, color, size)
@@ -52,11 +55,11 @@ export async function initializeDatabase() {
     await sql`
       CREATE TABLE IF NOT EXISTS reservations (
         id SERIAL PRIMARY KEY,
-        session_id VARCHAR(255) NOT NULL UNIQUE,
+        session_id VARCHAR(255) NOT NULL,
         product_id INTEGER NOT NULL,
         color VARCHAR(50) NOT NULL,
         size VARCHAR(10) NOT NULL,
-        quantity INTEGER NOT NULL,
+        quantity INTEGER NOT NULL CHECK (quantity > 0),
         expires_at BIGINT NOT NULL,
         created_at TIMESTAMP DEFAULT NOW()
       )
@@ -82,11 +85,11 @@ export async function initializeDatabase() {
     await sql`
       CREATE TABLE IF NOT EXISTS purchases (
         id SERIAL PRIMARY KEY,
-        session_id VARCHAR(255) NOT NULL UNIQUE,
+        session_id VARCHAR(255) NOT NULL,
         product_id INTEGER NOT NULL,
         color VARCHAR(50) NOT NULL,
         size VARCHAR(10) NOT NULL,
-        quantity INTEGER NOT NULL,
+        quantity INTEGER NOT NULL CHECK (quantity > 0),
         unit_price DECIMAL(10, 2) NOT NULL,
         total_price DECIMAL(10, 2) NOT NULL,
         customer_email VARCHAR(255),
@@ -110,6 +113,19 @@ export async function initializeDatabase() {
     await sql`
       CREATE INDEX IF NOT EXISTS idx_purchases_date 
       ON purchases(created_at DESC)
+    `;
+
+    // Migrations for databases created with the older schema (all idempotent).
+    // A session can hold several cart lines, so uniqueness is per line, not per session.
+    await sql`ALTER TABLE reservations DROP CONSTRAINT IF EXISTS reservations_session_id_key`;
+    await sql`ALTER TABLE purchases DROP CONSTRAINT IF EXISTS purchases_session_id_key`;
+    await sql`
+      CREATE UNIQUE INDEX IF NOT EXISTS uq_reservations_line
+      ON reservations(session_id, product_id, color, size)
+    `;
+    await sql`
+      CREATE UNIQUE INDEX IF NOT EXISTS uq_purchases_line
+      ON purchases(session_id, product_id, color, size)
     `;
 
     console.log('✅ Database initialized successfully');

@@ -2,7 +2,7 @@
 import { config } from 'dotenv';
 import { neon } from '@neondatabase/serverless';
 
-config({ path: '.env.development' });
+config({ path: '.env.local' });
 const sql = neon(process.env.DATABASE_URL!);
 
 async function fixInventory() {

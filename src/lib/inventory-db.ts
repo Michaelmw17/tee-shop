@@ -1,5 +1,5 @@
 // Database-backed inventory management
-import { sql } from './db';
+import { sql, transaction } from './db';
 
 export interface Inventory {
   [productId: string]: {
@@ -134,51 +134,57 @@ export async function getAvailableStock(productId: number, color: string, size: 
   return Math.max(0, totalStock - reserved);
 }
 
-// Reserve stock for a checkout session
+// Serialises reservations so two buyers cannot both claim the last unit
+const RESERVE_LOCK_KEY = 481516;
+
+// Reserve stock for a checkout session.
+// The availability check and the insert are one statement, run while holding an advisory lock
+// inside a transaction, so concurrent checkouts cannot oversell.
 export async function reserveStock(
   sessionId: string,
   items: Array<{ id: number; color: string; size: string; qty: number }>
 ): Promise<{ success: boolean; errors: string[] }> {
   try {
-    await cleanupExpiredReservations();
-    const errors: string[] = [];
-    const expiresAt = Date.now() + (30 * 60 * 1000); // 30 minutes
+    const now = Date.now();
+    const expiresAt = now + (30 * 60 * 1000); // 30 minutes
+    const lines = JSON.stringify(
+      items.map(item => ({ product_id: item.id, color: item.color, size: item.size, qty: item.qty }))
+    );
 
-    console.log('🔒 Attempting to reserve stock for session:', sessionId);
-
-    // Validate all items have available stock before reserving
-    for (const item of items) {
-      const available = await getAvailableStock(item.id, item.color, item.size);
-      console.log(`📊 Available stock: Product ${item.id}, ${item.color}-${item.size}: ${available} available, ${item.qty} requested`);
-
-      if (available < item.qty) {
-        errors.push(
-          `${item.color} ${item.size} - Only ${available} available (you requested ${item.qty})`
-        );
-      }
-    }
-
-    if (errors.length > 0) {
-      console.error('❌ Reservation failed - insufficient stock:', errors);
-      return { success: false, errors };
-    }
-
-    // Create reservations using transaction
-    for (const item of items) {
-      await sql`
+    const results = await transaction((tx) => [
+      tx`SELECT pg_advisory_xact_lock(${RESERVE_LOCK_KEY})`,
+      tx`DELETE FROM reservations WHERE expires_at < ${now}`,
+      tx`
         INSERT INTO reservations (session_id, product_id, color, size, quantity, expires_at)
-        VALUES (${sessionId}, ${item.id}, ${item.color}, ${item.size}, ${item.qty}, ${expiresAt})
-      `;
+        SELECT ${sessionId}, r.product_id, r.color, r.size, r.qty, ${expiresAt}
+        FROM jsonb_to_recordset(${lines}::jsonb) AS r(product_id int, color text, size text, qty int)
+        WHERE NOT EXISTS (
+          SELECT 1
+          FROM jsonb_to_recordset(${lines}::jsonb) AS q(product_id int, color text, size text, qty int)
+          WHERE COALESCE((
+                  SELECT i.stock FROM inventory i
+                  WHERE i.product_id = q.product_id AND i.color = q.color AND i.size = q.size
+                ), 0)
+              - COALESCE((
+                  SELECT SUM(v.quantity) FROM reservations v
+                  WHERE v.product_id = q.product_id AND v.color = q.color AND v.size = q.size
+                    AND v.expires_at > ${now}
+                ), 0)
+              < q.qty
+        )
+        RETURNING id
+      `,
+    ]);
+
+    const inserted = results[2] as unknown[];
+    if (inserted.length !== items.length) {
+      return { success: false, errors: ['Some items are no longer available in the requested quantity'] };
     }
 
-    console.log(`✅ Reserved stock for session ${sessionId}`);
     return { success: true, errors: [] };
   } catch (error) {
-    console.error('❌ Error in reserveStock:', error);
-    return {
-      success: false,
-      errors: [`System error: ${error instanceof Error ? error.message : 'Unknown error'}`]
-    };
+    console.error('Error in reserveStock:', error);
+    return { success: false, errors: ['Unable to reserve stock right now'] };
   }
 }
 

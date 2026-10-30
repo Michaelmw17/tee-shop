@@ -9,16 +9,22 @@ on:
     # Run security scan daily at 2 AM UTC
     - cron: '0 2 * * *'
 
+# Least privilege: the workflow can only read repository contents
+permissions:
+  contents: read
+
 jobs:
   security-scan:
     name: Security Scan
     runs-on: ubuntu-latest
     
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      with:
+        persist-credentials: false
     
     - name: Setup Node.js
-      uses: actions/setup-node@v4
+      uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
       with:
         node-version: '20'
         cache: 'npm'
@@ -29,11 +35,24 @@ jobs:
     - name: Run npm audit
       run: npm audit --audit-level=moderate
       
-    - name: Run npm audit fix
-      run: npm audit fix --dry-run
-      
     - name: Build project
       run: npm run build
       
     - name: Run TypeScript check
       run: npx tsc --noEmit
+
+  secret-scan:
+    name: Secret Scan
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      with:
+        fetch-depth: 0
+        persist-credentials: false
+
+    # Scans the full git history for committed secrets
+    - name: Run gitleaks
+      uses: gitleaks/gitleaks-action@ff98106e4c7b2bc287b24eaf42907196329070c7 # v2
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
