@@ -43,7 +43,7 @@
     "eslint": "^9",
     "eslint-config-next": "15.5.4",
     "husky": "^9.1.7",
-    "lint-staged": "^16.2.4",
+    "lint-staged": "^17.6.0",
     "tailwindcss": "^4.1.13",
     "tsx": "^4.21.0",
     "typescript": "^5"
