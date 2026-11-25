@@ -44,6 +44,7 @@ next-env.d.ts
 
 # vscode
 .vscode/*
+!.vscode/launch.json
 
 # security & logs
 *.log
