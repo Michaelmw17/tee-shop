@@ -46,6 +46,8 @@ Run `db:harden` after `db:migrate` on every database, new or existing.
 npm run dev
 ```
 
+In VS Code, press **F5** and choose **Next.js: Run Dev Server** to start the same command and open the local site in your browser.
+
 ## 5. Stripe webhook (local)
 
 ```bash
